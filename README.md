@@ -20,6 +20,10 @@ to do every day. So why not automate it?
 * build a sqllite storage service that stores state
 * build an event source system to detect the change and send a grpc message to
   the correct server? -- overkill but fun
+* experiment with running services in different locations. Containers locally
+  and Containers remotely or in Lambda things because why not, interesting to
+learn.
+* 
 
 
 ## Installing via brew
