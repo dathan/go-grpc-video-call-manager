@@ -1,6 +1,11 @@
 ## Purpose
 
-Build a template repository to get to coding as quickly as possible, by starting from a common template which follows the guidelines [`here`](https://github.com/golang-standards/project-layout)
+Exercise my go skills, build something fun that I can use every day. I have to
+join a zoom session every day. Why do I have to click a link? That is annoying
+to do every day. So why not automate it?
+
+
+
 
 ## Features
 * Makefile to build consistently in a local environment and remote environment
@@ -9,10 +14,13 @@ Build a template repository to get to coding as quickly as possible, by starting
 * VS Code environment
 * Generic docker push
 
-## TODO
-* Brew generic install [DONE]
-* GITHUB Actions build and push to dockerhub [DONE]
-* Production Builds with git tag
+## TODO 
+* build a grpc service that opens up a zoom session
+* build a grpc service that reads the calendar
+* build a sqllite storage service that stores state
+* build an event source system to detect the change and send a grpc message to
+  the correct server? -- overkill but fun
+
 
 ## Installing via brew
 * `brew install --verbose --build-from-source brew/Formula/go-grpc-zoom-manager.rb`
