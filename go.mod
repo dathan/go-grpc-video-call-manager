@@ -1,3 +1,3 @@
-module github.com/dathan/go-project-template
+module github.com/dathan/go-grpc-zoom-manager
 
 go 1.14
