@@ -2,18 +2,9 @@
 # the 1st FROM builds the application
 FROM golang:1.14-alpine3.11 AS baseGo
   LABEL stage=build
-  ARG GITHUB_SSH_PRIV_KEY
-  RUN test -n "$GITHUB_SSH_PRIV_KEY"
 
   ENV CGO_ENABLED 0
-  RUN apk add --no-cache git bash openssh
-
-  # Grab Private Repo credentials
-  RUN mkdir /root/.ssh/
-  RUN echo "${GITHUB_SSH_PRIV_KEY}" > /root/.ssh/id_rsa
-  RUN chmod 400 /root/.ssh/id_rsa
-  RUN ssh-keyscan -H github.com >> ~/.ssh/known_hosts
-  RUN git config --global url."git@github.com:".insteadOf "https://github.com/"
+  RUN apk add --no-cache git bash 
   RUN mkdir /root/gocode
   COPY . /root/gocode
   WORKDIR /root/gocode
