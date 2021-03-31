@@ -27,4 +27,4 @@ learn.
 
 
 ## Installing via brew
-* `brew install --verbose --build-from-source brew/Formula/go-grpc-zoom-manager.rb`
+* `brew install --verbose --build-from-source brew/Formula/go-grpc-video-call-manager.rb`

@@ -1,7 +1,7 @@
 # Go parameters
 BINARY_NAME=license-check
 BINARY_UNIX=$(BINARY_NAME)_unix
-REPO=docker.pkg.github.com/dathan/go-grpc-zoom-manager/go-grpc-zoom-manager
+REPO=docker.pkg.github.com/dathan/go-grpc-video-call-manager/go-grpc-video-call-manager
 
 .PHONY: all
 all: lint test build
