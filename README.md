@@ -1,7 +1,7 @@
 ## Purpose
 
 Exercise my go skills, build something fun that I can use every day. I have to
-join a zoom session every day. Why do I have to click a link? That is annoying
+join a meet session every day. Why do I have to click a link? That is annoying
 to do every day. So why not automate it?
 
 
@@ -15,15 +15,12 @@ to do every day. So why not automate it?
 * Generic docker push
 
 ## TODO 
-* build a grpc service that opens up a zoom session
-* build a grpc service that reads the calendar
+* ~~build a grpc service that opens up a meet session~~
+* ~~build a  service that reads the calendar~~
+* Make a grpc service for calendar and meet joining
 * build a sqllite storage service that stores state
 * build an event source system to detect the change and send a grpc message to
   the correct server? -- overkill but fun
-* experiment with running services in different locations. Containers locally
-  and Containers remotely or in Lambda things because why not, interesting to
-learn.
-* 
 
 
 ## Installing via brew
