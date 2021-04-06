@@ -1,7 +1,7 @@
 # Go parameters
-BINARY_NAME=license-check
+BINARY_NAME=launch_google_meet_chrome
 BINARY_UNIX=$(BINARY_NAME)_unix
-REPO=docker.pkg.github.com/dathan/go-grpc-video-call-manager/go-grpc-video-call-manager
+REPO=docker.pkg.github.com/dathan/go-grpc-video-call-manager/launch_google_meet_chrome
 
 .PHONY: all
 all: lint test build
