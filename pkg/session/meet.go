@@ -3,7 +3,6 @@ package session
 import (
 	"context"
 	"errors"
-	"log"
 	"os"
 	"strings"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/input"
 	"github.com/chromedp/chromedp"
+	"github.com/sirupsen/logrus"
 )
 
 /**
@@ -60,6 +60,7 @@ func (s *Session) NewContext() (context.Context, context.CancelFunc) {
 	opts = append(opts, chromedp.Flag("hide-scrollbars", false))
 	opts = append(opts, chromedp.Flag("mute-audio", false))
 	opts = append(opts, chromedp.Flag("disable-gpu", false))
+	opts = append(opts, chromedp.Flag("restore-on-startup", false))
 
 	ctx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
 	s.parentContext = ctx
@@ -83,7 +84,7 @@ func (s *Session) Login(ctx context.Context) error {
 	var nodes []*cdp.Node
 	return chromedp.Run(ctx,
 		chromedp.ActionFunc(func(ctx context.Context) error {
-			log.Printf("pre-navigate")
+			logrus.Infof("pre-navigate")
 			return nil
 		}),
 		chromedp.Navigate("https://meet.google.com/"),
@@ -111,12 +112,12 @@ func (s *Session) Login(ctx context.Context) error {
 					return nil
 				}
 
-				log.Printf("Not yet authenticated, at: %v", location)
+				logrus.Infof("Not yet authenticated, at: %v", location)
 				time.Sleep(tick)
 			}
 		}),
 		chromedp.ActionFunc(func(ctx context.Context) error {
-			log.Printf("post-navigate")
+			logrus.Infof("post-navigate")
 			return nil
 		}),
 	)
@@ -153,21 +154,21 @@ func (s *Session) ApplySettings(ctx context.Context) error {
 	}
 
 	if err := s.execute(ctx, "SETTINGS", tasks); err != nil {
-		log.Printf("SETTINGS ERROR: %s\n", err)
+		logrus.Infof("SETTINGS ERROR: %s\n", err)
 		return err
 	}
 
 	if err := chromedp.Run(ctx,
 		chromedp.ActionFunc(func(ctx context.Context) error {
-			log.Printf("pre-click")
+			logrus.Infof("pre-click")
 			err := chromedp.Click(selector, chromedp.BySearch).Do(ctx)
 			if err != nil {
 				return err
 			}
-			log.Printf("post-click")
+			logrus.Infof("post-click")
 			return nil
 		})); err != nil {
-		log.Printf("CLICK ERROR: %s\n", err)
+		logrus.Infof("CLICK ERROR: %s\n", err)
 		return err
 
 	}
@@ -184,7 +185,7 @@ func (s *Session) execute(ctx context.Context, actionType string, actions chrome
 
 			chromedp.ActionFunc(
 				func(ctx context.Context) error {
-					log.Printf("PRE-%s\n", actionType)
+					logrus.Infof("PRE-%s\n", actionType)
 					return nil
 				}),
 		},
@@ -194,7 +195,7 @@ func (s *Session) execute(ctx context.Context, actionType string, actions chrome
 
 		chromedp.ActionFunc(
 			func(ctx context.Context) error {
-				log.Printf("POST-%s\n", actionType)
+				logrus.Infof("POST-%s\n", actionType)
 				return nil
 			}),
 	})
@@ -205,17 +206,17 @@ func (s *Session) execute(ctx context.Context, actionType string, actions chrome
 }
 
 func (s *Session) Wait(ctx context.Context) {
-	log.Printf("Support for new navigate")
+	logrus.Infof("Support for new navigate")
 	for {
 		select {
 		case <-ctx.Done():
-			log.Printf("Context is done exiting")
+			logrus.Infof("Context is done exiting")
 			return
 		case <-s.parentContext.Done():
-			log.Printf("Parent context is done existing")
+			logrus.Infof("Parent context is done existing")
 			return
 		default: //TODO remove this it is not needed
-			log.Println("looking for signal")
+			logrus.Println("looking for signal")
 			time.Sleep(2 * time.Second)
 			continue
 		}

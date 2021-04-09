@@ -72,7 +72,7 @@ func (m *MeetTaskImpl) End() time.Time {
 }
 
 func (m *MeetTaskImpl) Execute() error {
-	logrus.Infof("Execute !!! not implemented: %s => %s\n", m.Summary, m.Uri)
+	logrus.Infof("Execute !!!: %s => %s\n", m.Summary, m.Uri)
 	backend := "localhost:8080"
 
 	conn, err := grpc.Dial(backend, grpc.WithInsecure())
@@ -92,6 +92,7 @@ func (m *MeetTaskImpl) Execute() error {
 		logrus.Error("EXECUTE ERROR: %s\n", err.Error())
 		return err
 	}
+
 	if stat.ErrorMsg != "" {
 		logrus.Error("Server ERROR: %s\n", stat.ErrorMsg)
 		return errors.New("GRPC SERVER ERROR: " + stat.ErrorMsg)
@@ -105,16 +106,6 @@ func setTimers(ctx context.Context, c calendar.MeetItems) {
 	t, _ := taskWrapper(c)
 	cron := tasks.NewCronTask(ctx, t)
 	cron.Run()
-
-}
-
-// triggerMeetings listens to timer queue when to send a request to the grpc server
-func triggerMeeting() {
-	// dial the client
-
-	// send the message
-
-	// get the response
 
 }
 
