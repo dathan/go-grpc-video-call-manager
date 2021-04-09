@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package manager;
+option go_package = "../manager";
+
+message Meet {
+    string uri = 1;
+    bool done = 2;
+}
+
+message Status {
+    bool ok = 1;
+    string errorMsg = 2;
+}
+
+service OpenMeetUrl {
+    rpc OpenMeetUrl(Meet) returns(Status) {}
+}

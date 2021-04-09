@@ -21,6 +21,13 @@ import (
 type CalService struct {
 }
 
+// implement a task
+type Task interface {
+	When() time.Time
+	End() time.Time
+	Execute() error //A Task has to be able to be run
+}
+
 // MeetItem is a structure comtaining the pertinate meeting info
 type MeetItem struct {
 	Uri       string
@@ -100,6 +107,7 @@ func (em *CalService) GetUpcomingMeetings() (MeetItems, error) {
 
 	return meetings, nil
 }
+
 
 // Retrieve a token, saves the token, then returns the generated client.
 func getClient(config *oauth2.Config) *http.Client {

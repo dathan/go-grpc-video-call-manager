@@ -13,11 +13,16 @@ to do every day. So why not automate it?
 * Go Mod (which you should to your project path change)
 * VS Code environment
 * Generic docker push
+* Chromedp browser launch
+* Google Gmail Integration
+* Google Login Detection
+* Meeting Launch Automation
 
 ## TODO 
 * ~~build a grpc service that opens up a meet session~~
 * ~~build a  service that reads the calendar~~
 * Make a grpc service for calendar and meet joining
+* Make a daemon that looks for new calendar events to autojoin
 * build a sqllite storage service that stores state
 * build an event source system to detect the change and send a grpc message to
   the correct server? -- overkill but fun

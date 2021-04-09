@@ -59,7 +59,6 @@ func (s *Session) NewContext() (context.Context, context.CancelFunc) {
 	opts = append(opts, chromedp.Flag("headless", false))
 	opts = append(opts, chromedp.Flag("hide-scrollbars", false))
 	opts = append(opts, chromedp.Flag("mute-audio", false))
-	// undo DisableGPU from above
 	opts = append(opts, chromedp.Flag("disable-gpu", false))
 
 	ctx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
@@ -108,15 +107,13 @@ func (s *Session) Login(ctx context.Context) error {
 					return nil
 				}
 
-				if strings.Contains(location, "hs=") != false {
+				if strings.Contains(location, "hs=") {
 					return nil
 				}
 
 				log.Printf("Not yet authenticated, at: %v", location)
-
 				time.Sleep(tick)
 			}
-			return nil
 		}),
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			log.Printf("post-navigate")
