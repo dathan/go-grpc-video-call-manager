@@ -21,8 +21,9 @@ to do every day. So why not automate it?
 ## TODO 
 * ~~build a grpc service that opens up a meet session~~
 * ~~build a  service that reads the calendar~~
-* Make a grpc service for calendar and meet joining
-* Make a daemon that looks for new calendar events to autojoin
+* ~~ Make a grpc service for calendar and meet joining ~~
+* ~~ Make a daemon that looks for new calendar events to autojoin ~~
+* REFACTOR
 * build a sqllite storage service that stores state
 * build an event source system to detect the change and send a grpc message to
   the correct server? -- overkill but fun
