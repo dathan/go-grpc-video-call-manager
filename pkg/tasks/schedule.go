@@ -8,7 +8,7 @@ import (
 )
 
 // MAGIC_DELTA
-const MAGIC_DELTA = float64(1600)
+const MAGIC_DELTA = float64(600) // seconds
 
 //Things that satisfy this interface can be executed as a Task
 type Task interface {
@@ -39,6 +39,7 @@ func (c *Cron) Run() {
 
 	var timer *time.Timer
 	if len(c.ordered) == 0 {
+		logrus.Info("Tasks are finished")
 		return
 	}
 
@@ -47,23 +48,26 @@ func (c *Cron) Run() {
 		s := time.Now().Add(time.Second * time.Duration(MAGIC_DELTA))
 
 		if s.After(task.When()) {
+
 			if err := task.Execute(); err != nil {
 				logrus.Warnf("Task: %v - ERROR - %s\n", task, err)
-				return
 			}
+
 			c.ordered = c.ordered[1:]
 			continue
 		}
 
-		d := task.When().Sub(time.Now())
+		//start - now() == delta
+		d := task.When().Sub(time.Now().Add(time.Second * time.Duration(MAGIC_DELTA)))
 
-		logrus.Infof("Timer Execution: %d seconds Task: %v", d.Seconds(), task)
+		logrus.Infof("TASK[ %+v ] - Timer Execution: %f seconds", task, d.Seconds())
 
 		timer = time.NewTimer(d)
 		break
 	}
 
 	if timer == nil {
+		logrus.Warnf("Timer is nil\n")
 		return
 	}
 
@@ -76,7 +80,6 @@ func (c *Cron) Run() {
 		case <-timer.C:
 			timer.Stop()
 			c.Run()
-			return
 		}
 	}
 }

@@ -61,6 +61,7 @@ func (s *Session) NewContext() (context.Context, context.CancelFunc) {
 	opts = append(opts, chromedp.Flag("mute-audio", false))
 	opts = append(opts, chromedp.Flag("disable-gpu", false))
 	opts = append(opts, chromedp.Flag("restore-on-startup", false))
+	opts = append(opts, chromedp.Flag("start-fullscreen", true))
 
 	ctx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
 	s.parentContext = ctx
