@@ -27,12 +27,18 @@ func main() {
 	go launchGRPCServer(ctx)
 
 	for {
+		// do while
 		meetings, err := findMeetings()
 		if err != nil {
 			panic(err)
 		}
 
 		setTimers(ctx, meetings)
+		t, _ := taskWrapper(c)
+		cron := tasks.NewCronTask(ctx, t)
+		cron.Run()
+
+		//
 
 		select {
 		case <-ctx.Done():
@@ -103,10 +109,6 @@ func (m *MeetTaskImpl) Execute() error {
 // setup the tasks to run on a timer.
 func setTimers(ctx context.Context, c calendar.MeetItems) {
 
-	t, _ := taskWrapper(c)
-	cron := tasks.NewCronTask(ctx, t)
-	cron.Run()
-
 }
 
 // launchGRPCServer is launched via a go routine
@@ -140,6 +142,7 @@ type server struct {
 	manager.UnimplementedOpenMeetUrlServer
 }
 
+// for the local server open the meet url
 func (s server) OpenMeetUrl(c context.Context, man *manager.Meet) (*manager.Status, error) {
 
 	meet, err := session.NewSession()

@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
 )
 
@@ -24,6 +25,7 @@ type SequentialTasks []Task
 type Cron struct {
 	ordered       SequentialTasks
 	parentContext context.Context
+	taskChan      chan SequentialTasks
 }
 
 // Create a new timed task
@@ -31,6 +33,7 @@ func NewCronTask(ctx context.Context, mis SequentialTasks) *Cron {
 	return &Cron{
 		ordered:       mis,
 		parentContext: ctx,
+		taskChan:      make(chan SequentialTasks),
 	}
 }
 
@@ -45,7 +48,7 @@ func (c *Cron) Run() {
 
 	// c.ordered is order in time.
 	for _, task := range c.ordered {
-		s := time.Now().Add(time.Second * time.Duration(-MAGIC_DELTA)) // if 10 mins ago is that after the task start?
+		s := time.Now().Add(time.Second * time.Duration(MAGIC_DELTA)) // if 10 mins ago is that after the task start?
 
 		if s.After(task.When()) {
 
@@ -73,7 +76,12 @@ func (c *Cron) Run() {
 
 	// block for the timer
 	for {
-		select {
+		select { // listen for an update to the calendar
+		case tLock := <-c.taskChan:
+			logrus.Info("Recevied an update to the task channel. clearing tasks and rerunning")
+			timer.Stop()
+			c.ordered = tLock // todo lock
+			c.Run()
 		case <-c.parentContext.Done():
 			timer.Stop()
 			return
@@ -81,5 +89,13 @@ func (c *Cron) Run() {
 			timer.Stop()
 			c.Run()
 		}
+	}
+}
+
+func (c *Cron) Update(st SequentialTasks) {
+
+	if cmp.Equal(c.ordered, st) == false {
+		logrus.Info("Updateing the channel to replace the task list")
+		c.taskChan <- st
 	}
 }
