@@ -45,7 +45,7 @@ func (c *Cron) Run() {
 
 	// c.ordered is order in time.
 	for _, task := range c.ordered {
-		s := time.Now().Add(time.Second * time.Duration(MAGIC_DELTA))
+		s := time.Now().Add(time.Second * time.Duration(-MAGIC_DELTA)) // if 10 mins ago is that after the task start?
 
 		if s.After(task.When()) {
 
@@ -58,7 +58,7 @@ func (c *Cron) Run() {
 		}
 
 		//start - now() == delta
-		d := task.When().Sub(time.Now().Add(time.Second * time.Duration(MAGIC_DELTA)))
+		d := task.When().Sub(time.Now().Add(time.Second * time.Duration(MAGIC_DELTA))) // start 10 mins early
 
 		logrus.Infof("TASK[ %+v ] - Timer Execution: %f seconds", task, d.Seconds())
 
