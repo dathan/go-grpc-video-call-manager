@@ -216,10 +216,6 @@ func (s *Session) Wait(ctx context.Context) {
 		case <-s.parentContext.Done():
 			logrus.Infof("Parent context is done existing")
 			return
-		default: //TODO remove this it is not needed
-			logrus.Println("looking for signal")
-			time.Sleep(2 * time.Second)
-			continue
 		}
 	}
 }

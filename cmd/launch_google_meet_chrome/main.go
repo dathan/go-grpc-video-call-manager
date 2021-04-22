@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"time"
 
 	"github.com/dathan/go-grpc-video-call-manager/pkg/calendar"
@@ -21,7 +22,11 @@ import (
 //  - TODO - when the time for the meeting is about to start, launch the meeting
 //	- TODO - handle context
 func main() {
+	logrus.SetFormatter(&logrus.JSONFormatter{})
+
+	logrus.SetReportCaller(true)
 	logrus.SetLevel(logrus.InfoLevel)
+
 	ctx := context.Background()
 
 	go launchGRPCServer(ctx)
@@ -33,22 +38,71 @@ func main() {
 			panic(err)
 		}
 
-		setTimers(ctx, meetings)
-		t, _ := taskWrapper(c)
+		t, _ := taskWrapper(meetings)
 		cron := tasks.NewCronTask(ctx, t)
+
+		go timerMeeting(ctx, cron)
+
 		cron.Run()
 
 		//
 
 		select {
 		case <-ctx.Done():
-			logrus.Infoln("Catch a shutdonw")
+			logrus.Infoln("Catch a shutdown")
+			os.Exit(0)
 		}
 	}
 }
 
+// keep running a timer in a go-routine to look for new meetings
+func timerMeeting(ctx context.Context, cron *tasks.Cron) {
+	t := time.NewTimer(time.Duration(30) * time.Second)
+	select {
+	case <-ctx.Done():
+		t.Stop()
+		return
+
+	case <-t.C:
+		meetings, err := findMeetings()
+		if err != nil {
+			panic(err)
+		}
+
+		tsks, err := taskWrapper(meetings)
+		if err != nil {
+			panic(err) // should cause a signal
+		}
+
+		// go through all the tasks and skip the meetings that have started
+		i := 0
+		for _, t := range tsks {
+			if t.When().After(time.Now()) { // if the meeting has already started
+				tsks[i] = t
+				i++
+			}
+		}
+
+		if i > 0 {
+			// Prevent memory leak by erasing truncated values
+			// (not needed if values don't contain pointers, directly or indirectly)
+			for j := i; j < len(tsks); j++ {
+				tsks[j] = nil
+			}
+			tsks = tsks[:i]
+		}
+
+		cron.Update(tsks)
+		timerMeeting(ctx, cron) // keep going forever
+	}
+
+}
+
 // findMeetings is invoked via a go-routine which periodically polls the calender to update the meetings for the day.
 func findMeetings() (calendar.MeetItems, error) {
+
+	logrus.Info("Looking for new meetings")
+
 	cal := &calendar.CalService{}
 	return cal.GetUpcomingMeetings()
 
