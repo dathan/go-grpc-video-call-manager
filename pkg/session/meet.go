@@ -51,7 +51,8 @@ func NewSession() (*Session, error) {
 func (s *Session) NewContext() (context.Context, context.CancelFunc) {
 	// Let's use as a base for allocator options (It implies Headless)
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.DisableGPU,
+		chromedp.NoFirstRun,
+		chromedp.NoDefaultBrowserCheck,
 		chromedp.UserDataDir(s.profileDir),
 	)
 
@@ -62,6 +63,7 @@ func (s *Session) NewContext() (context.Context, context.CancelFunc) {
 	opts = append(opts, chromedp.Flag("disable-gpu", false))
 	opts = append(opts, chromedp.Flag("restore-on-startup", false))
 	opts = append(opts, chromedp.Flag("start-fullscreen", true))
+	opts = append(opts, chromedp.Flag("enable-automation", false))
 
 	ctx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
 	s.parentContext = ctx

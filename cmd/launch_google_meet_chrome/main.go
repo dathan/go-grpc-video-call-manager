@@ -22,7 +22,7 @@ import (
 //  - TODO - when the time for the meeting is about to start, launch the meeting
 //	- TODO - handle context
 func main() {
-	logrus.SetFormatter(&logrus.JSONFormatter{})
+	logrus.SetFormatter(&logrus.TextFormatter{ForceColors: true})
 
 	logrus.SetReportCaller(true)
 	logrus.SetLevel(logrus.InfoLevel)
