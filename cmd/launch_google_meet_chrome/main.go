@@ -75,27 +75,22 @@ func timerMeeting(ctx context.Context, cron *tasks.Cron) {
 		}
 
 		// go through all the tasks and skip the meetings that have started
-		i := 0
-		for _, t := range tsks {
-			if t.When().After(time.Now()) { // if the meeting has already started
-				tsks[i] = t
-				i++
+		for i := len(tsks) - 1; i >= 0; i-- {
+			if tsks[i].Start().Before(time.Now()) {
+				tsks = removeElement(i, tsks)
 			}
-		}
-
-		if i > 0 {
-			// Prevent memory leak by erasing truncated values
-			// (not needed if values don't contain pointers, directly or indirectly)
-			for j := i; j < len(tsks); j++ {
-				tsks[j] = nil
-			}
-			tsks = tsks[:i]
 		}
 
 		cron.Update(tsks)
 		timerMeeting(ctx, cron) // keep going forever
 	}
 
+}
+
+func removeElement(s int, tsks tasks.SequentialTasks) tasks.SequentialTasks {
+	logrus.Infof("Removing %d ]  %v", s, tsks[s])
+	tsks = append(tsks[:s], tsks[s+1:]...)
+	return tsks
 }
 
 // findMeetings is invoked via a go-routine which periodically polls the calender to update the meetings for the day.
@@ -123,7 +118,7 @@ func taskWrapper(c calendar.MeetItems) (tasks.SequentialTasks, error) {
 
 }
 
-func (m *MeetTaskImpl) When() time.Time {
+func (m *MeetTaskImpl) Start() time.Time {
 	return m.StartTime
 }
 

@@ -13,7 +13,7 @@ const MAGIC_DELTA = float64(600) // seconds
 
 //Things that satisfy this interface can be executed as a Task
 type Task interface {
-	When() time.Time
+	Start() time.Time
 	End() time.Time
 	Execute() error //A Task has to be able to be run
 }
@@ -48,9 +48,9 @@ func (c *Cron) Run() {
 
 	// c.ordered is order in time.
 	for _, task := range c.ordered {
-		s := time.Now().Add(time.Second * time.Duration(MAGIC_DELTA)) // if 10 mins ago is that after the task start?
 
-		if s.After(task.When()) {
+		s := time.Now().Add(time.Second * time.Duration(MAGIC_DELTA)) // if now+10min is after task start
+		if s.After(task.Start()) {
 
 			if err := task.Execute(); err != nil {
 				logrus.Warnf("Task: %v - ERROR - %s\n", task, err)
@@ -61,7 +61,7 @@ func (c *Cron) Run() {
 		}
 
 		//start - now() == delta
-		d := task.When().Sub(time.Now().Add(time.Second * time.Duration(MAGIC_DELTA))) // start 10 mins early
+		d := task.Start().Sub(time.Now().Add(time.Second * time.Duration(MAGIC_DELTA))) // start 10 mins early
 
 		logrus.Infof("TASK[ %+v ] - Timer Execution: %f seconds", task, d.Seconds())
 
@@ -77,10 +77,10 @@ func (c *Cron) Run() {
 	// block for the timer
 	for {
 		select { // listen for an update to the calendar
-		case tLock := <-c.taskChan:
+		case tsk := <-c.taskChan:
 			logrus.Info("Recevied an update to the task channel. clearing tasks and rerunning")
 			timer.Stop()
-			c.ordered = tLock // todo lock
+			c.ordered = tsk
 			c.Run()
 		case <-c.parentContext.Done():
 			timer.Stop()
