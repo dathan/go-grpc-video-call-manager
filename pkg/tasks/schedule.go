@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -26,6 +27,7 @@ type Cron struct {
 	ordered       SequentialTasks
 	parentContext context.Context
 	taskChan      chan SequentialTasks
+	tLock         *sync.Mutex
 }
 
 // Create a new timed task
@@ -34,6 +36,7 @@ func NewCronTask(ctx context.Context, mis SequentialTasks) *Cron {
 		ordered:       mis,
 		parentContext: ctx,
 		taskChan:      make(chan SequentialTasks),
+		tLock:         &sync.Mutex{},
 	}
 }
 
@@ -56,7 +59,7 @@ func (c *Cron) Run() {
 				logrus.Warnf("Task: %v - ERROR - %s\n", task, err)
 			}
 
-			c.ordered = c.ordered[1:]
+			c.internalUpdate(c.ordered[1:])
 			continue
 		}
 
@@ -78,9 +81,9 @@ func (c *Cron) Run() {
 	for {
 		select { // listen for an update to the calendar
 		case tsk := <-c.taskChan:
-			logrus.Info("Recevied an update to the task channel. clearing tasks and rerunning")
+			logrus.Info("Recieved Update to TaskChan - stoping timers, updating list, rerunning.")
 			timer.Stop()
-			c.ordered = tsk
+			c.internalUpdate(tsk)
 			c.Run()
 		case <-c.parentContext.Done():
 			timer.Stop()
@@ -92,10 +95,18 @@ func (c *Cron) Run() {
 	}
 }
 
+// Update the tasks channel so listeners can execute the new job order
 func (c *Cron) Update(st SequentialTasks) {
 
 	if cmp.Equal(c.ordered, st) == false {
-		logrus.Info("Updateing the channel to replace the task list")
+		logrus.Info("Updating the channel to replace the task list")
 		c.taskChan <- st
+		logrus.Info("Update Sent")
 	}
+}
+
+func (c *Cron) internalUpdate(st SequentialTasks) {
+	c.tLock.Lock()
+	c.ordered = st
+	c.tLock.Unlock()
 }
