@@ -55,6 +55,24 @@ func (m *MeetTaskImpl) Execute() error {
 	return nil
 }
 
+// keep running a timer in a go-routine to look for new meetings
+func UpdateCronMeetings(ctx context.Context, cron *tasks.Cron) {
+	t := time.NewTimer(time.Duration(30) * time.Second)
+	select {
+	case <-ctx.Done():
+		t.Stop()
+		return
+
+	case <-t.C:
+		tsks := GetTasks()
+		// go through all the tasks and skip the meetings that have started
+		tsks = PruneTasks(tsks)
+		cron.Update(tsks)
+		UpdateCronMeetings(ctx, cron) // keep going forever
+	}
+
+}
+
 // TODO: think of how to do this more efficiently without copies just to know
 func PruneTasks(tsks tasks.SequentialTasks) tasks.SequentialTasks {
 	for i := len(tsks) - 1; i >= 0; i-- {
@@ -67,6 +85,7 @@ func PruneTasks(tsks tasks.SequentialTasks) tasks.SequentialTasks {
 
 // common code to getTasks
 func GetTasks() tasks.SequentialTasks {
+	logrus.Info("Getting new SequentialTasks")
 	meetings, err := FindMeetings()
 	if err != nil {
 		panic(err)

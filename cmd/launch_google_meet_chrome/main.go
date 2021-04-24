@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"time"
 
 	meettask "github.com/dathan/go-grpc-video-call-manager/internal/tasks"
 	"github.com/dathan/go-grpc-video-call-manager/pkg/manager"
@@ -22,7 +21,7 @@ func init() {
 	logrus.SetLevel(logrus.InfoLevel)
 }
 
-// launch the grpc server that handles the open of the chrome server
+// launch the grpc server that handles the open of the chrome launch and actions
 // launch a go routine that polls the calendar and schedules the next link
 func main() {
 
@@ -30,40 +29,20 @@ func main() {
 
 	go launchGRPCServer(ctx)
 
-	for {
+	t := meettask.GetTasks()
+	cron := tasks.NewCron(ctx, t)
 
-		t := meettask.GetTasks()
-		cron := tasks.NewCronTask(ctx, t)
+	go meettask.UpdateCronMeetings(ctx, cron)
+	// do while
+	go cron.Run()
+	go cron.Loop()
 
-		go timerMeeting(ctx, cron)
-
-		cron.Run()
-
-		//when an interupt to stop is caught like a control-c
-		select {
-		case <-ctx.Done():
-			logrus.Println("SHUTDOWN")
-			os.Exit(0)
-		}
-	}
-}
-
-// keep running a timer in a go-routine to look for new meetings
-func timerMeeting(ctx context.Context, cron *tasks.Cron) {
-	t := time.NewTimer(time.Duration(30) * time.Second)
+	//TODO add signal catching
 	select {
 	case <-ctx.Done():
-		t.Stop()
-		return
-
-	case <-t.C:
-		tsks := meettask.GetTasks()
-		// go through all the tasks and skip the meetings that have started
-		tsks = meettask.PruneTasks(tsks)
-		cron.Update(tsks)
-		timerMeeting(ctx, cron) // keep going forever
+		logrus.Println("SHUTDOWN")
+		os.Exit(0)
 	}
-
 }
 
 // launchGRPCServer is launched via a go routine
