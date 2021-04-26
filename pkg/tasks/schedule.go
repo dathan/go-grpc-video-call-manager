@@ -15,6 +15,7 @@ const MAGIC_DELTA = float64(600) // seconds
 //Things that satisfy this interface can be executed as a Task
 type Task interface {
 	Start() time.Time
+	Name() string
 	End() time.Time
 	Execute() error //A Task has to be able to be run
 }
@@ -38,7 +39,7 @@ func NewCron(ctx context.Context, mis SequentialTasks) *Cron {
 		parentContext: ctx,
 		taskChan:      make(chan SequentialTasks),
 		tLock:         &sync.Mutex{},
-		timer:         &time.Timer{},
+		timer:         time.NewTimer(time.Hour * 86000), // set a default timer to fix a race condition
 	}
 }
 
@@ -65,9 +66,9 @@ func (c *Cron) Run() {
 		}
 
 		//TODO: make preference of scheduling the task buffer
-		d := task.Start().Sub(time.Now().Add(time.Second * time.Duration(MAGIC_DELTA))) // start 10 mins early
-
-		logrus.Infof("TASK[ %+v ] - Timer Execution: %f seconds", task, d.Seconds())
+		k := task.Start().Add(-time.Second * time.Duration(MAGIC_DELTA)) // start 10 mins early
+		d := k.Sub(time.Now())
+		logrus.Infof("TASK START[ %s => %+v ] - Timer Execution: %f seconds: %s", task.Name(), task.Start(), d.Seconds(), d.String())
 
 		c.timer = time.NewTimer(d)
 		break

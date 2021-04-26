@@ -18,6 +18,10 @@ type MeetTaskImpl struct {
 
 type MeetTasks []MeetTaskImpl
 
+func (m *MeetTaskImpl) Name() string {
+	return m.Summary + " => [ " + m.Uri + " ]"
+}
+
 func (m *MeetTaskImpl) Start() time.Time {
 	return m.StartTime
 }
@@ -44,12 +48,12 @@ func (m *MeetTaskImpl) Execute() error {
 
 	stat, err := client.OpenMeetUrl(context.Background(), meet)
 	if err != nil {
-		logrus.Error("EXECUTE ERROR: %s\n", err.Error())
+		logrus.Error("EXECUTE ERROR: %s", err.Error())
 		return err
 	}
 
 	if stat.ErrorMsg != "" {
-		logrus.Error("Server ERROR: %s\n", stat.ErrorMsg)
+		logrus.Error("Server ERROR: %s", stat.ErrorMsg)
 		return errors.New("GRPC SERVER ERROR: " + stat.ErrorMsg)
 	}
 	return nil
@@ -76,6 +80,7 @@ func UpdateCronMeetings(ctx context.Context, cron *tasks.Cron) {
 // TODO: think of how to do this more efficiently without copies just to know
 func PruneTasks(tsks tasks.SequentialTasks) tasks.SequentialTasks {
 	for i := len(tsks) - 1; i >= 0; i-- {
+		// note this should look at the status of a job running
 		if tsks[i].Start().Before(time.Now()) {
 			tsks = RemoveElement(i, tsks)
 		}
