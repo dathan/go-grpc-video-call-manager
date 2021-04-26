@@ -30,19 +30,22 @@ func main() {
 	go launchGRPCServer(ctx)
 
 	t := meettask.GetTasks()
+
+	// Convert the tasks into a cron task
 	cron := tasks.NewCron(ctx, t)
 
+	// refresh the task list
 	go meettask.UpdateCronMeetings(ctx, cron)
+
 	// do while
 	go cron.Run()
 	go cron.Loop()
 
 	//TODO add signal catching
-	select {
-	case <-ctx.Done():
-		logrus.Println("SHUTDOWN")
-		os.Exit(0)
-	}
+	<-ctx.Done()
+	logrus.Println("SHUTDOWN")
+	os.Exit(0)
+
 }
 
 // launchGRPCServer is launched via a go routine
@@ -62,14 +65,9 @@ func launchGRPCServer(ctx context.Context) {
 		logrus.Fatalf("could not serve: %v", err)
 	}
 
-	select {
-	case <-ctx.Done():
-		logrus.Infoln("GRPC-Server is shutting down")
-		s.GracefulStop()
-		break
-
-	}
-
+	<-ctx.Done()
+	logrus.Infoln("GRPC-Server is shutting down")
+	s.GracefulStop()
 }
 
 type server struct {
