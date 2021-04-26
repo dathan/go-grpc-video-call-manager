@@ -83,22 +83,9 @@ func (c *Cron) Run() {
 	}
 }
 
-func (c *Cron) setTimer(t *time.Timer) {
-	c.stopTimer()
-	c.timer = t
-	c.timerOn = true
-}
-
-func (c *Cron) stopTimer() {
-	if c.timerOn {
-		c.timer.Stop()
-	}
-	c.timerOn = false
-}
-
+// Wait for the timer to finish to launch the next item in the queue
 func (c *Cron) Loop() {
 
-	//TODO: revidew this, feels that run is doing to much and this timer is adding an AND to the method yet it is cronlist so I'm conflicted
 	// block for the timer
 	for {
 		select { // listen for an update to the calendar
@@ -133,4 +120,19 @@ func (c *Cron) internalUpdate(st SequentialTasks) {
 	c.tLock.Lock()
 	c.ordered = st
 	c.tLock.Unlock()
+}
+
+// helper method to set a timer
+func (c *Cron) setTimer(t *time.Timer) {
+	c.stopTimer()
+	c.timer = t
+	c.timerOn = true
+}
+
+// helper method to stop a stimer
+func (c *Cron) stopTimer() {
+	if c.timerOn {
+		c.timer.Stop()
+	}
+	c.timerOn = false
 }
