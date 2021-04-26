@@ -30,6 +30,7 @@ type Cron struct {
 	taskChan      chan SequentialTasks
 	tLock         *sync.Mutex
 	timer         *time.Timer
+	timerOn       bool
 }
 
 // Create a new timed task
@@ -40,6 +41,7 @@ func NewCron(ctx context.Context, mis SequentialTasks) *Cron {
 		taskChan:      make(chan SequentialTasks),
 		tLock:         &sync.Mutex{},
 		timer:         time.NewTimer(time.Hour * 86000), // set a default timer to fix a race condition
+		timerOn:       false,
 	}
 }
 
@@ -70,7 +72,8 @@ func (c *Cron) Run() {
 		d := k.Sub(time.Now())
 		logrus.Infof("TASK START[ %s => %+v ] - Timer Execution: %f seconds: %s", task.Name(), task.Start(), d.Seconds(), d.String())
 
-		c.timer = time.NewTimer(d)
+		c.setTimer(time.NewTimer(d))
+
 		break
 	}
 
@@ -78,6 +81,19 @@ func (c *Cron) Run() {
 		logrus.Warnf("Timer is nil\n")
 		return
 	}
+}
+
+func (c *Cron) setTimer(t *time.Timer) {
+	c.stopTimer()
+	c.timer = t
+	c.timerOn = true
+}
+
+func (c *Cron) stopTimer() {
+	if c.timerOn {
+		c.timer.Stop()
+	}
+	c.timerOn = false
 }
 
 func (c *Cron) Loop() {
@@ -88,14 +104,14 @@ func (c *Cron) Loop() {
 		select { // listen for an update to the calendar
 		case tsk := <-c.taskChan:
 			logrus.Info("Recieved Update to TaskChan - stoping timers, updating list, rerunning.")
-			c.timer.Stop()
+			c.stopTimer()
 			c.internalUpdate(tsk)
 			c.Run()
 		case <-c.parentContext.Done():
-			c.timer.Stop()
+			c.stopTimer()
 			return
 		case <-c.timer.C:
-			c.timer.Stop()
+			c.stopTimer()
 			c.Run()
 		}
 	}
