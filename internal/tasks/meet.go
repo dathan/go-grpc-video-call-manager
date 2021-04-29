@@ -12,6 +12,9 @@ import (
 	"google.golang.org/grpc"
 )
 
+// support for a magic number in seconds
+const MEETING_FETCH_DELTA = 30
+
 type MeetTaskImpl struct {
 	calendar.MeetItem
 }
@@ -61,20 +64,20 @@ func (m *MeetTaskImpl) Execute() error {
 
 // keep running a timer in a go-routine to look for new meetings
 func UpdateCronMeetings(ctx context.Context, cron *tasks.Cron) {
-	t := time.NewTimer(time.Duration(30) * time.Second)
-	select {
-	case <-ctx.Done():
-		t.Stop()
-		return
+	t := time.NewTicker(time.Duration(MEETING_FETCH_DELTA) * time.Second)
+	for {
+		select {
+		case <-ctx.Done():
+			t.Stop()
+			return
 
-	case <-t.C:
-		tsks := GetTasks()
-		// go through all the tasks and skip the meetings that have started
-		tsks = PruneTasks(tsks)
-		cron.Update(tsks)
-		UpdateCronMeetings(ctx, cron) // keep going forever
+		case <-t.C:
+			tsks := GetTasks()
+			// go through all the tasks and skip the meetings that have started
+			tsks = PruneTasks(tsks)
+			cron.Update(tsks)
+		}
 	}
-
 }
 
 // TODO: think of how to do this more efficiently without copies just to know
@@ -90,7 +93,7 @@ func PruneTasks(tsks tasks.SequentialTasks) tasks.SequentialTasks {
 
 // common code to getTasks
 func GetTasks() tasks.SequentialTasks {
-	logrus.Info("Getting new SequentialTasks")
+
 	meetings, err := FindMeetings()
 	if err != nil {
 		panic(err)
@@ -112,8 +115,6 @@ func RemoveElement(s int, tsks tasks.SequentialTasks) tasks.SequentialTasks {
 
 // findMeetings is invoked via a go-routine which periodically polls the calender to update the meetings for the day.
 func FindMeetings() (calendar.MeetItems, error) {
-
-	logrus.Info("Looking for new meetings")
 
 	cal := &calendar.CalService{}
 	return cal.GetUpcomingMeetings()

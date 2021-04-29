@@ -14,19 +14,23 @@ to do every day. So why not automate it?
 * VS Code environment
 * Generic docker push
 * Chromedp browser launch
-* Google Gmail Integration
 * Google Login Detection
 * Meeting Launch Automation
+* Google Meet Support
+* Client that grabs calendar events
+* GRPC Server that opens the browser and launches the meeting
 
 ## TODO 
 * ~~build a grpc service that opens up a meet session~~
 * ~~build a  service that reads the calendar~~
-* ~~ Make a grpc service for calendar and meet joining ~~
-* ~~ Make a daemon that looks for new calendar events to autojoin ~~
-* REFACTOR
-* build a sqllite storage service that stores state
-* build an event source system to detect the change and send a grpc message to
-  the correct server? -- overkill but fun
+* ~~Make a grpc service for calendar and meet joining~~
+* ~~Make a daemon that looks for new calendar events to autojoin~~
+* ~~REFACTOR~~
+* Seperate auth into a different service that gives oauth2 flow but browser grabs the token
+* build a front end system in Dash
+* make portable to share with people from a 1 click install
+* support over the wire upgrades
+
 
 
 ## Installing via brew

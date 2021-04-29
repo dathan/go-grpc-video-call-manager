@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/chromedp/cdproto v0.0.0-20210323015217-0942afbea50e
 	github.com/chromedp/chromedp v0.6.10
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.5 // direct
 	github.com/sirupsen/logrus v1.8.1
