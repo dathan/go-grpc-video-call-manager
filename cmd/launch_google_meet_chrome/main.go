@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"os"
+	"os/signal"
+	"syscall"
 
 	meettask "github.com/dathan/go-grpc-video-call-manager/internal/tasks"
 	"github.com/dathan/go-grpc-video-call-manager/pkg/tasks"
@@ -11,7 +13,8 @@ import (
 
 //setup logging
 func init() {
-	logrus.SetFormatter(&logrus.TextFormatter{ForceColors: true})
+	l := &logrus.TextFormatter{ForceColors: true, FullTimestamp: true, TimestampFormat: "2006-01-02 15:04:05"}
+	logrus.SetFormatter(l)
 	logrus.SetReportCaller(true)
 	logrus.SetLevel(logrus.InfoLevel)
 }
@@ -22,9 +25,13 @@ func main() {
 
 	ctx := context.Background()
 
+	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
 	// start the server
 	go meettask.GRPCServer(ctx)
 
+	// get tasks that implement the interface
 	t := meettask.GetTasks()
 
 	// Convert the tasks into a cron task
@@ -36,9 +43,7 @@ func main() {
 	// do while
 	go cron.Run()
 
-	//TODO add signal catching
 	<-ctx.Done()
 	logrus.Println("SHUTDOWN")
 	os.Exit(0)
-
 }

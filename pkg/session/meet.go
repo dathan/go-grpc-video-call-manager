@@ -208,12 +208,13 @@ func (s *Session) execute(ctx context.Context, actionType string, actions chrome
 
 }
 
+// wait for the browser to exit
 func (s *Session) Wait(ctx context.Context) {
-	logrus.Infof("Support for new navigate")
+	logrus.Infof("Waiting for the browser to exit")
 	for {
 		select {
 		case <-ctx.Done():
-			logrus.Infof("Context is done exiting")
+			logrus.Infof("Browser Context is done exiting")
 			return
 		case <-s.parentContext.Done():
 			logrus.Infof("Parent context is done existing")
