@@ -15,24 +15,30 @@ import (
 // support for a magic number in seconds
 const MEETING_FETCH_DELTA = 30
 
+// 'extend' a meetitem
 type MeetTaskImpl struct {
 	calendar.MeetItem
 }
 
+// collection of meet taks
 type MeetTasks []MeetTaskImpl
 
+// implement the Interface requried for Cron
 func (m *MeetTaskImpl) Name() string {
 	return m.Summary + " => [ " + m.Uri + " ]"
 }
 
+// return the start time
 func (m *MeetTaskImpl) Start() time.Time {
 	return m.StartTime
 }
 
+// return the end time
 func (m *MeetTaskImpl) End() time.Time {
 	return m.EndTime
 }
 
+// Run the current task from the cron package
 func (m *MeetTaskImpl) Execute() error {
 	logrus.Infof("Execute !!!: %s => %s\n", m.Summary, m.Uri)
 	backend := "localhost:8080"
@@ -51,12 +57,12 @@ func (m *MeetTaskImpl) Execute() error {
 
 	stat, err := client.OpenMeetUrl(context.Background(), meet)
 	if err != nil {
-		logrus.Error("EXECUTE ERROR: %s", err.Error())
+		logrus.Errorf("EXECUTE ERROR: %s", err.Error())
 		return err
 	}
 
 	if stat.ErrorMsg != "" {
-		logrus.Error("Server ERROR: %s", stat.ErrorMsg)
+		logrus.Errorf("Server ERROR: %s", stat.ErrorMsg)
 		return errors.New("GRPC SERVER ERROR: " + stat.ErrorMsg)
 	}
 	return nil
@@ -121,6 +127,7 @@ func FindMeetings() (calendar.MeetItems, error) {
 
 }
 
+// convert the meeting items to meeting tasks
 func TaskWrapper(c calendar.MeetItems) (tasks.SequentialTasks, error) {
 	var mt tasks.SequentialTasks
 	for _, task := range c {
