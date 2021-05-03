@@ -29,7 +29,6 @@ type Cron struct {
 	parentContext context.Context
 	taskChan      chan SequentialTasks
 	tLock         *sync.Mutex
-	inProgress    bool
 	currentTask   *Task
 }
 
@@ -65,7 +64,6 @@ func (c *Cron) Run() {
 		s := time.Now().Add(time.Second * time.Duration(MAGIC_DELTA)) // if now+10min is after task start
 
 		if s.After(task.Start()) { // handle if the task already started
-			c.inProgress = true
 			c.currentTask = &task // todo: lock
 			if err := task.Execute(); err != nil {
 				logrus.Warnf("Task: %v - ERROR - %s\n", task, err)
@@ -73,7 +71,6 @@ func (c *Cron) Run() {
 			continue // notice we will continue iterating the next task lisk
 		}
 
-		c.inProgress = false
 		c.currentTask = nil
 
 		//TODO: make preference of scheduling the task buffer
