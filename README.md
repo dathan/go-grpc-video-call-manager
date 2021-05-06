@@ -26,6 +26,7 @@ to do every day. So why not automate it?
 * ~~Make a grpc service for calendar and meet joining~~
 * ~~Make a daemon that looks for new calendar events to autojoin~~
 * ~~REFACTOR~~
+* Add config and state support 
 * Seperate auth into a different service that gives oauth2 flow but browser grabs the token
 * build a front end system in Dash
 * make portable to share with people from a 1 click install
