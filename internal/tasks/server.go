@@ -69,7 +69,7 @@ func GRPCServer(ctx context.Context) {
 	port := 8080
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
-		logrus.Fatalf("could not listen to port %d: %v", port, err)
+		logrus.Errorf("could not listen to port %d: %v", port, err)
 	}
 
 	logrus.Infof("GRPCServer starting localhost:%d\n", port)
@@ -78,7 +78,7 @@ func GRPCServer(ctx context.Context) {
 	manager.RegisterOpenMeetUrlServer(s, server{})
 	err = s.Serve(lis)
 	if err != nil {
-		logrus.Fatalf("could not serve: %v", err)
+		logrus.Errorf("could not serve: %v", err)
 	}
 
 	<-ctx.Done()

@@ -25,7 +25,7 @@ clean:
 
 .PHONY: run
 run:
-				go run ./cmd/$(BINARY_NAME)/*.go
+				go run -race ./cmd/$(BINARY_NAME)/*.go
 
 .PHONY: vendor
 vendor:

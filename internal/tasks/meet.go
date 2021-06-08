@@ -102,14 +102,19 @@ func GetTasks() tasks.SequentialTasks {
 
 	meetings, err := FindMeetings()
 	if err != nil {
-		panic(err)
+		// When I close my laptop for the day, I want the client to recover
+		for i := 0; i < 3420; i++ { //TODO: 1140 minutes in a day, wait a day -- fix this
+			logrus.Errorf("Error from find meetings - retrying: %s", err)
+			time.Sleep(1 * time.Minute)
+			meetings, err = FindMeetings()
+			if err == nil {
+				break
+			}
+		}
 	}
 
-	tsks, err := TaskWrapper(meetings)
-	if err != nil {
-		panic(err) // should cause a signal
-	}
-	return tsks
+	return TaskWrapper(meetings)
+
 }
 
 // todo can this be done without a copy? verify a copy.
@@ -128,12 +133,12 @@ func FindMeetings() (calendar.MeetItems, error) {
 }
 
 // convert the meeting items to meeting tasks
-func TaskWrapper(c calendar.MeetItems) (tasks.SequentialTasks, error) {
+func TaskWrapper(c calendar.MeetItems) tasks.SequentialTasks {
 	var mt tasks.SequentialTasks
 	for _, task := range c {
 		mti := &MeetTaskImpl{task}
 		mt = append(mt, mti)
 	}
-	return mt, nil
+	return mt
 
 }
