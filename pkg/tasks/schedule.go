@@ -56,16 +56,17 @@ func (c *Cron) Run() {
 	// c.ordered is order in time and we will either execute the task or schedule the task to run
 	for _, task := range c.ordered {
 
-		// check if the current task == the last task
-		if c.lastTask != nil && ((*c.lastTask).Start().After(task.Start())) {
-			logrus.Warn("Task: %+v is Old Ran Already?")
-			c.currentTask = nil
-			continue
+		select {
+		case <-c.taskChan: // listen for an update to the calendar
+			logrus.Infof("Task chan in loop returning")
+			return
+		default:
+			logrus.Infof("Looking at ask: %+v", task)
+
 		}
 
 		s := time.Now().Add(time.Second * time.Duration(MAGIC_DELTA)) // if now+10min is after task start
-
-		if s.After(task.Start()) { // handle if the task already started
+		if s.After(task.Start()) {                                    // handle if the task already started
 
 			c.currentTask = &task
 			if err := task.Execute(); err != nil {
@@ -82,16 +83,12 @@ func (c *Cron) Run() {
 		d := task.Start().Sub(s)
 		logrus.Infof("NEW SCHEDULED START[ %s => %+v ] - Timer Execution: %f seconds -> %s", task.Name(), task.Start(), d.Seconds(), time.Now().Add(d))
 		timer = time.NewTimer(d)
+		c.wait(timer)
 		break
 	}
 
-	if timer == nil {
-		logrus.Warnf("Timer is nil\n")
-		return
-	}
+	logrus.Info("Run finished")
 
-	// each run will have its own schedule to run
-	c.wait(timer)
 }
 
 // Update the tasks channel so listeners can execute the new job order
@@ -128,6 +125,8 @@ func (c *Cron) pruneBeforeCurrentTask(tsks SequentialTasks) SequentialTasks {
 
 // Wait for the timer to finish to launch the next item in the queue
 func (c *Cron) wait(t *time.Timer) {
+
+	logrus.Info("Wating for a change")
 
 	defer logrus.Info("Wait finished")
 	// notes channels are a queue of values, and selects are blocking by default unless a default case is used.
