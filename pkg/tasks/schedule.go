@@ -56,14 +56,7 @@ func (c *Cron) Run() {
 	// c.ordered is order in time and we will either execute the task or schedule the task to run
 	for _, task := range c.ordered {
 
-		select {
-		case <-c.taskChan: // listen for an update to the calendar
-			logrus.Infof("Task chan in loop returning")
-			return
-		default:
-			logrus.Infof("Looking at ask: %+v", task)
-
-		}
+		logrus.Infof("Looking at ask: %+v", task)
 
 		s := time.Now().Add(time.Second * time.Duration(MAGIC_DELTA)) // if now+10min is after task start
 		if s.After(task.Start()) {                                    // handle if the task already started
