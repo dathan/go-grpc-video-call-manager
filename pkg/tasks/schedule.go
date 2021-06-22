@@ -53,10 +53,13 @@ func (c *Cron) Run() {
 		return
 	}
 
+	// from a golang concurrency perspective range produces a write to assign it to task.
+	c.tLock.Lock()
+
 	// c.ordered is order in time and we will either execute the task or schedule the task to run
 	for _, task := range c.ordered {
 
-		logrus.Infof("Looking at ask: %+v", task)
+		logrus.Infof("Looking at task: %+v", task)
 
 		s := time.Now().Add(time.Second * time.Duration(MAGIC_DELTA)) // if now+10min is after task start
 		if s.After(task.Start()) {                                    // handle if the task already started
@@ -76,10 +79,17 @@ func (c *Cron) Run() {
 		d := task.Start().Sub(s)
 		logrus.Infof("NEW SCHEDULED START[ %s => %+v ] - Timer Execution: %f seconds -> %s", task.Name(), task.Start(), d.Seconds(), time.Now().Add(d))
 		timer = time.NewTimer(d)
-		c.wait(timer)
 		break
 	}
 
+	c.tLock.Unlock()
+
+	if timer == nil {
+		logrus.Warn("IMPOSSIBLE ERROR: Timer is nil sequential order is bogus. Run finished")
+		return
+	}
+
+	c.wait(timer)
 	logrus.Info("Run finished")
 
 }
@@ -119,7 +129,7 @@ func (c *Cron) pruneBeforeCurrentTask(tsks SequentialTasks) SequentialTasks {
 // Wait for the timer to finish to launch the next item in the queue
 func (c *Cron) wait(t *time.Timer) {
 
-	logrus.Info("Wating for a change")
+	logrus.Info("Waiting for a change")
 
 	defer logrus.Info("Wait finished")
 	// notes channels are a queue of values, and selects are blocking by default unless a default case is used.
