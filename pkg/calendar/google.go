@@ -20,6 +20,7 @@ import (
 
 // service to get the urls
 type CalService struct {
+	CallersEmail string
 }
 
 // implement a task
@@ -81,7 +82,7 @@ func (em *CalService) GetUpcomingMeetings() (MeetItems, error) {
 
 		if item.ConferenceData != nil && item.ConferenceData.ConferenceSolution != nil && item.ConferenceData.ConferenceSolution.Name == "Google Meet" {
 			for _, entry := range item.ConferenceData.EntryPoints {
-				if entry.Uri != "" && entry.EntryPointType == "video" {
+				if entry.Uri != "" && entry.EntryPointType == "video" && em.checkGoogleEventAttendies(item.Attendees) {
 
 					date := item.Start.DateTime
 					if date == "" {
@@ -111,6 +112,18 @@ func (em *CalService) GetUpcomingMeetings() (MeetItems, error) {
 	}
 
 	return meetings, nil
+}
+
+// checks to see if the attendee is self
+func (cs *CalService) checkGoogleEventAttendies(attendies []*calendar.EventAttendee) bool {
+	return true
+	for _, attendee := range attendies {
+		//TODO get this from a config of who the caller is
+		if attendee.Email == cs.CallersEmail && attendee.ResponseStatus != "declined" {
+			return true
+		}
+	}
+	return false
 }
 
 // Retrieve a token, saves the token, then returns the generated client.

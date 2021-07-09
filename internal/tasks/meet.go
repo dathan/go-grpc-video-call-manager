@@ -3,6 +3,7 @@ package tasks
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/dathan/go-grpc-video-call-manager/pkg/calendar"
@@ -22,6 +23,10 @@ type MeetTaskImpl struct {
 
 // collection of meet taks
 type MeetTasks []MeetTaskImpl
+
+func (m *MeetTaskImpl) String() string {
+	return fmt.Sprintf("Meeting Task: %s Starts: %s and Ends: %s", m.Name(), m.Start(), m.End())
+}
 
 // implement the Interface requried for Cron
 func (m *MeetTaskImpl) Name() string {
@@ -78,7 +83,22 @@ func UpdateCronMeetings(ctx context.Context, cron *tasks.Cron) {
 			return
 
 		case <-t.C:
-			tsks := GetTasks()
+
+			tsks, err := GetTasks()
+			if err != nil {
+				// When I close my laptop for the day, I want the client to recover
+				for { //TODO: 1140 minutes in a day, wait a day -- fix this
+					logrus.Errorf("Error from find meetings - retrying: %s", err)
+					// send a message to reset the channels (laptop is sleep)
+					cron.Update(tasks.SequentialTasks{})
+					time.Sleep(1 * time.Minute)
+					tsks, err = GetTasks()
+					if err == nil {
+						break
+					}
+				}
+			}
+
 			// go through all the tasks and skip the meetings that have started
 			tsks = PruneTasks(tsks)
 			cron.Update(tsks)
@@ -90,44 +110,32 @@ func UpdateCronMeetings(ctx context.Context, cron *tasks.Cron) {
 func PruneTasks(tsks tasks.SequentialTasks) tasks.SequentialTasks {
 	for i := len(tsks) - 1; i >= 0; i-- {
 		// note this should look at the status of a job running
-		if tsks[i].Start().Before(time.Now()) {
-			tsks = RemoveElement(i, tsks)
+		t := time.Now().Add(-MEETING_FETCH_DELTA)
+		if tsks[i].Start().Before(t) { // if now() == 10 am, if task.Start == 10 am is before 9:50
+			logrus.Infof("Removing %d ]  %s", i, tsks[i])
+			tsks = append(tsks[:i], tsks[i+1:]...)
 		}
 	}
+
 	return tsks
 }
 
 // common code to getTasks
-func GetTasks() tasks.SequentialTasks {
+func GetTasks() (tasks.SequentialTasks, error) {
 
 	meetings, err := FindMeetings()
 	if err != nil {
-		// When I close my laptop for the day, I want the client to recover
-		for i := 0; i < 3420; i++ { //TODO: 1140 minutes in a day, wait a day -- fix this
-			logrus.Errorf("Error from find meetings - retrying: %s", err)
-			time.Sleep(1 * time.Minute)
-			meetings, err = FindMeetings()
-			if err == nil {
-				break
-			}
-		}
+		return nil, err
 	}
 
-	return TaskWrapper(meetings)
+	return TaskWrapper(meetings), nil
 
-}
-
-// todo can this be done without a copy? verify a copy.
-func RemoveElement(s int, tsks tasks.SequentialTasks) tasks.SequentialTasks {
-	logrus.Infof("Removing %d ]  %v", s, tsks[s])
-	tsks = append(tsks[:s], tsks[s+1:]...)
-	return tsks
 }
 
 // findMeetings is invoked via a go-routine which periodically polls the calender to update the meetings for the day.
 func FindMeetings() (calendar.MeetItems, error) {
 
-	cal := &calendar.CalService{}
+	cal := &calendar.CalService{"dathan.pattishall@wework.com"} //
 	return cal.GetUpcomingMeetings()
 
 }

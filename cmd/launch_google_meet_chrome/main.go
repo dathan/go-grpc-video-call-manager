@@ -32,8 +32,10 @@ func main() {
 	go meettask.GRPCServer(ctx)
 
 	// get tasks that implement the interface
-	t := meettask.GetTasks()
-
+	t, err := meettask.GetTasks()
+	if err != nil {
+		panic(err)
+	}
 	// Convert the tasks into a cron task
 	cron := tasks.NewCron(ctx, t)
 

@@ -87,7 +87,7 @@ func (s *Session) Login(ctx context.Context) error {
 	var nodes []*cdp.Node
 	return chromedp.Run(ctx,
 		chromedp.ActionFunc(func(ctx context.Context) error {
-			logrus.Infof("pre-navigate")
+			logrus.Debugf("pre-navigate")
 			return nil
 		}),
 		chromedp.Navigate("https://meet.google.com/"),
@@ -120,7 +120,7 @@ func (s *Session) Login(ctx context.Context) error {
 			}
 		}),
 		chromedp.ActionFunc(func(ctx context.Context) error {
-			logrus.Infof("post-navigate")
+			logrus.Debugf("post-navigate")
 			return nil
 		}),
 	)
@@ -157,21 +157,21 @@ func (s *Session) ApplySettings(ctx context.Context) error {
 	}
 
 	if err := s.execute(ctx, "SETTINGS", tasks); err != nil {
-		logrus.Infof("SETTINGS ERROR: %s\n", err)
+		logrus.Warnf("SETTINGS ERROR: %s\n", err)
 		return err
 	}
 
 	if err := chromedp.Run(ctx,
 		chromedp.ActionFunc(func(ctx context.Context) error {
-			logrus.Infof("pre-click")
+			logrus.Debugf("pre-click")
 			err := chromedp.Click(selector, chromedp.BySearch).Do(ctx)
 			if err != nil {
 				return err
 			}
-			logrus.Infof("post-click")
+			logrus.Debugf("post-click")
 			return nil
 		})); err != nil {
-		logrus.Infof("CLICK ERROR: %s\n", err)
+		logrus.Debugf("CLICK ERROR: %s\n", err)
 		return err
 
 	}
@@ -188,7 +188,7 @@ func (s *Session) execute(ctx context.Context, actionType string, actions chrome
 
 			chromedp.ActionFunc(
 				func(ctx context.Context) error {
-					logrus.Infof("PRE-%s\n", actionType)
+					logrus.Debugf("PRE-%s\n", actionType)
 					return nil
 				}),
 		},
@@ -198,7 +198,7 @@ func (s *Session) execute(ctx context.Context, actionType string, actions chrome
 
 		chromedp.ActionFunc(
 			func(ctx context.Context) error {
-				logrus.Infof("POST-%s\n", actionType)
+				logrus.Debugf("POST-%s\n", actionType)
 				return nil
 			}),
 	})
