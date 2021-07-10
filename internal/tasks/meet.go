@@ -135,7 +135,7 @@ func GetTasks() (tasks.SequentialTasks, error) {
 // findMeetings is invoked via a go-routine which periodically polls the calender to update the meetings for the day.
 func FindMeetings() (calendar.MeetItems, error) {
 
-	cal := &calendar.CalService{"dathan.pattishall@wework.com"} //
+	cal := &calendar.CalService{} //
 	return cal.GetUpcomingMeetings()
 
 }

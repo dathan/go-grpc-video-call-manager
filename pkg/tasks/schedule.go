@@ -48,7 +48,9 @@ func (c *Cron) Run() {
 
 	var timer *time.Timer // each run will have its own timer to loop
 
-	go c.listenForUpdates()
+	//when run finishes clean up the routine
+	ctxRun := context.Background()
+	go c.listenForUpdates(ctxRun)
 
 	if len(c.ordered) == 0 {
 		logrus.Warn("Tasks are finished")
@@ -60,11 +62,6 @@ func (c *Cron) Run() {
 
 	// c.ordered is order in time and we will either execute the task or schedule the task to run
 	for _, task := range c.ordered {
-
-		if c.lastTask != nil && (*c.lastTask).End().After(task.End()) {
-			logrus.Warnf("Skipping Task: %v because lastTask: %v", task, (*c.lastTask))
-			continue
-		}
 
 		logrus.Infof("Looking at task: %+v", task)
 
@@ -116,13 +113,17 @@ func (c *Cron) Update(st SequentialTasks) {
 }
 
 // if execute is not called we need to still listen for the taskChan updates to reset the array otherwise there is a deadlock
-func (c *Cron) listenForUpdates() {
+func (c *Cron) listenForUpdates(cn context.Context) {
 
 	logrus.Info("listening for update")
 	defer func() {
 		logrus.Info("listening for update FINISHED!")
 	}()
+
 	select {
+	case <-cn.Done():
+		logrus.Info("Calling context is done")
+		return
 	case tsk := <-c.taskChan: // listen for an update to the calendar
 		logrus.Infof("Recieved Update to TaskChan - stoping timers, updating list, rerunning.")
 		c.internalUpdate(tsk)

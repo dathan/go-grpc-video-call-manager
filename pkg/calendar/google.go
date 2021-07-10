@@ -16,11 +16,14 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/calendar/v3"
+	"google.golang.org/api/option"
 )
+
+var TOKEN *oauth2.Token
 
 // service to get the urls
 type CalService struct {
-	CallersEmail string
+	callersEmail string
 }
 
 // implement a task
@@ -53,14 +56,18 @@ func (em *CalService) GetUpcomingMeetings() (MeetItems, error) {
 	}
 
 	// If modifying these scopes, delete your previously saved token.json.
-	config, err := google.ConfigFromJSON(b, calendar.CalendarScope)
+	scopes := []string{calendar.CalendarScope, "email"}
+	config, err := google.ConfigFromJSON(b, scopes...)
 	if err != nil {
 		log.Errorf("Unable to parse client secret file to config: %v", err)
 		return nil, err
 	}
 
 	client := getClient(config)
-	srv, err := calendar.New(client)
+
+	em.callersEmail = "dathan.pattishall@wework.com"
+
+	srv, err := calendar.NewService(context.Background(), option.WithHTTPClient(client))
 	if err != nil {
 		log.Errorf("Unable to retrieve Calendar client: %v", err)
 		return nil, err
@@ -82,7 +89,7 @@ func (em *CalService) GetUpcomingMeetings() (MeetItems, error) {
 
 		if item.ConferenceData != nil && item.ConferenceData.ConferenceSolution != nil && item.ConferenceData.ConferenceSolution.Name == "Google Meet" {
 			for _, entry := range item.ConferenceData.EntryPoints {
-				if entry.Uri != "" && entry.EntryPointType == "video" && em.checkGoogleEventAttendies(item.Attendees) {
+				if entry.Uri != "" && entry.EntryPointType == "video" && (item.Organizer.Email == em.callersEmail || em.checkGoogleEventAttendies(item.Attendees)) {
 
 					date := item.Start.DateTime
 					if date == "" {
@@ -116,10 +123,10 @@ func (em *CalService) GetUpcomingMeetings() (MeetItems, error) {
 
 // checks to see if the attendee is self
 func (cs *CalService) checkGoogleEventAttendies(attendies []*calendar.EventAttendee) bool {
-	return true
+
 	for _, attendee := range attendies {
 		//TODO get this from a config of who the caller is
-		if attendee.Email == cs.CallersEmail && attendee.ResponseStatus != "declined" {
+		if attendee.Email == cs.callersEmail && attendee.ResponseStatus != "declined" {
 			return true
 		}
 	}
@@ -137,6 +144,7 @@ func getClient(config *oauth2.Config) *http.Client {
 		tok = getTokenFromWeb(config)
 		saveToken(tokFile, tok)
 	}
+	TOKEN = tok
 	return config.Client(context.Background(), tok)
 }
 
@@ -178,7 +186,9 @@ func saveToken(path string, token *oauth2.Token) {
 		log.Errorf("Unable to cache oauth token: %v", err)
 	}
 	defer f.Close()
-	json.NewEncoder(f).Encode(token)
+	if err := json.NewEncoder(f).Encode(token); err != nil {
+		panic(err)
+	}
 }
 
 func path() (string, error) {
