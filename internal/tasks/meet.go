@@ -75,11 +75,17 @@ func (m *MeetTaskImpl) Execute() error {
 
 // keep running a timer in a go-routine to look for new meetings
 func UpdateCronMeetings(ctx context.Context, cron *tasks.Cron) {
-	t := time.NewTicker(time.Duration(MEETING_FETCH_DELTA) * time.Second)
+	// note cannot use a ticker, since that keeps fireing even if that timer body is blocked?
+	t := time.NewTimer(time.Duration(MEETING_FETCH_DELTA) * time.Second)
+	defer func() {
+		if !t.Stop() {
+			<-t.C
+		}
+	}()
+
 	for {
 		select {
 		case <-ctx.Done():
-			t.Stop()
 			return
 
 		case <-t.C:
@@ -101,7 +107,9 @@ func UpdateCronMeetings(ctx context.Context, cron *tasks.Cron) {
 
 			// go through all the tasks and skip the meetings that have started
 			tsks = PruneTasks(tsks)
-			cron.Update(tsks)
+			cron.Update(tsks) // this will block and we want that if things are running so a dogpile of events do not happen
+			UpdateCronMeetings(ctx, cron)
+			return
 		}
 	}
 }
