@@ -2,7 +2,9 @@ package tasks
 
 import (
 	"context"
+	"reflect"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -31,6 +33,7 @@ type Cron struct {
 	tLock         *sync.Mutex
 	currentTask   *Task
 	lastTask      *Task
+	jobCount      int64
 }
 
 // Create a new timed task
@@ -48,23 +51,37 @@ func (c *Cron) Run() {
 
 	var timer *time.Timer // each run will have its own timer to loop
 
+	logrus.Info("About to Run locking data")
+
+	c.tLock.Lock()
+
+	// this is really not needed but being complete
+	atomic.AddInt64(&c.jobCount, 1)
+	defer atomic.AddInt64(&c.jobCount, -1)
+
 	//when run finishes clean up the routine
 	ctxRun := context.Background()
 	go c.listenForUpdates(ctxRun)
 
 	if len(c.ordered) == 0 {
 		logrus.Warn("Tasks are finished")
+		c.tLock.Unlock()
 		return
 	}
 
 	// from a golang concurrency perspective range produces a write to assign it to task.
-	c.tLock.Lock()
-
 	// c.ordered is order in time and we will either execute the task or schedule the task to run
 	for _, task := range c.ordered {
 
 		logrus.Infof("Looking at task: %+v", task)
 
+		if c.lastTask != nil && (task.End().Before((*c.lastTask).Start()) == true && task.Name() != (*c.lastTask).Name()) {
+			logrus.Warnf("TASK: [%d] IS OLD NEED TO SKIP!! %s >>> %s", c.jobCount, task, (*c.lastTask))
+			c.tLock.Unlock()
+			return
+		}
+
+		c.currentTask = nil
 		s := time.Now().Add(time.Second * time.Duration(MAGIC_DELTA)) // if now+10min is after task start
 		if s.After(task.Start()) {                                    // handle if the task already started
 
@@ -74,11 +91,9 @@ func (c *Cron) Run() {
 				logrus.Warnf("Task: %s - ERROR - %s\n", task, err)
 			}
 
-			c.currentTask = nil
 			continue // notice we will continue iterating the next task lisk
 		}
 
-		c.currentTask = nil
 		c.lastTask = &task
 
 		//TODO: make preference of scheduling the task buffer
@@ -88,13 +103,13 @@ func (c *Cron) Run() {
 		break
 	}
 
-	c.tLock.Unlock()
-
 	if timer == nil {
 		logrus.Warn("IMPOSSIBLE ERROR: Timer is nil sequential order is bogus. Run finished")
+		c.tLock.Unlock()
 		return
 	}
 
+	c.tLock.Unlock()
 	c.wait(timer)
 	logrus.Info("Run finished")
 
@@ -170,4 +185,17 @@ func (c *Cron) internalUpdate(st SequentialTasks) {
 	c.tLock.Lock()
 	c.ordered = st
 	c.tLock.Unlock()
+}
+
+func CloneValue(source interface{}, destin interface{}) {
+	x := reflect.ValueOf(source)
+	if x.Kind() == reflect.Ptr {
+		starX := x.Elem()
+		y := reflect.New(starX.Type())
+		starY := y.Elem()
+		starY.Set(starX)
+		reflect.ValueOf(destin).Elem().Set(y.Elem())
+	} else {
+		destin = x.Interface()
+	}
 }

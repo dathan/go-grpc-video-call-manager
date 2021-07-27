@@ -98,9 +98,9 @@ func (em *CalService) GetUpcomingMeetings() (MeetItems, error) {
 
 					st, _ := time.Parse(time.RFC3339, date)
 
-					date = item.Start.DateTime
+					date = item.End.DateTime
 					if date == "" {
-						date = item.Start.Date
+						date = item.End.Date
 					}
 
 					et, _ := time.Parse(time.RFC3339, date)
