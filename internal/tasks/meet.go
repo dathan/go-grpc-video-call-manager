@@ -118,7 +118,7 @@ func UpdateCronMeetings(ctx context.Context, cron *tasks.Cron) {
 func PruneTasks(tsks tasks.SequentialTasks) tasks.SequentialTasks {
 	for i := len(tsks) - 1; i >= 0; i-- {
 		// note this should look at the status of a job running
-		t := time.Now().Add(-MEETING_FETCH_DELTA)
+		t := time.Now().Add(-MEETING_FETCH_DELTA * time.Second)
 		if tsks[i].Start().Before(t) { // if now() == 10 am, if task.Start == 10 am is before 9:50
 			logrus.Infof("Removing %d ]  %s", i, tsks[i])
 			tsks = append(tsks[:i], tsks[i+1:]...)

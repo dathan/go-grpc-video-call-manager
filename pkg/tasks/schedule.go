@@ -75,8 +75,8 @@ func (c *Cron) Run() {
 
 		logrus.Infof("Looking at task: %+v", task)
 
-		if c.lastTask != nil && (task.End().Before((*c.lastTask).Start()) == true && task.Name() != (*c.lastTask).Name()) {
-			logrus.Warnf("TASK: [%d] IS OLD NEED TO SKIP!! %s >>> %s", c.jobCount, task, (*c.lastTask))
+		if c.currentTask != nil && time.Now().Add(6*time.Minute).After(task.Start()) != false { // we start 10 minutes early if the meeting has started already skip
+			logrus.Warnf("TASK: [%d] IS OLD NEED TO SKIP!! %s >>> %s", c.jobCount, task, (*c.currentTask))
 			c.tLock.Unlock()
 			return
 		}

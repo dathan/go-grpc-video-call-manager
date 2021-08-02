@@ -73,6 +73,7 @@ func (s *Session) NewContext() (context.Context, context.CancelFunc) {
 }
 
 func (s *Session) Shutdown() {
+	logrus.Info("Session is shutting down")
 	s.parentCancel()
 }
 
@@ -211,6 +212,7 @@ func (s *Session) execute(ctx context.Context, actionType string, actions chrome
 // wait for the browser to exit
 func (s *Session) Wait(ctx context.Context) {
 	logrus.Infof("Waiting for the browser to exit")
+	defer s.Shutdown()
 	for {
 		select {
 		case <-ctx.Done():
