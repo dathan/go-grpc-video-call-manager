@@ -9,6 +9,7 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
+            "cwd" : "${workspaceFolder}",
             "program": "${workspaceFolder}/cmd/launch_google_meet_chrome/main.go",
             "env": {},
             "args": []

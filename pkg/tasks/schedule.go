@@ -34,6 +34,7 @@ type Cron struct {
 	currentTask   *Task
 	lastTask      *Task
 	jobCount      int64
+	isRunning     bool
 }
 
 // Create a new timed task
@@ -76,11 +77,12 @@ func (c *Cron) Run() {
 		logrus.Infof("Looking at task: %+v", task)
 
 		c.currentTask = nil
+		c.isRunning = false
 		s := time.Now().Add(time.Second * time.Duration(MAGIC_DELTA)) // if now+10min is after task start
 		if s.After(task.Start()) {                                    // handle if the task already started
 
 			c.currentTask = &task
-
+			c.isRunning = true
 			if err := task.Execute(); err != nil {
 				logrus.Warnf("Task: %s - ERROR - %s\n", task, err)
 			}
@@ -113,8 +115,8 @@ func (c *Cron) Run() {
 func (c *Cron) Update(st SequentialTasks) {
 
 	//logrus.Infof("Next Task: %s => Starts: %s", c.ordered[0].Name(), c.ordered[0].Start().Sub(time.Now()))
-
-	if !cmp.Equal(c.ordered, st) {
+	// TODO: this is a race condition locking the subsystem. Do not do updates when connected to a meeting
+	if c.isRunning == false && !cmp.Equal(c.ordered, st) {
 		logrus.Info("Updating the channel to replace the task list")
 		c.taskChan <- st // note this will block if a select has not been established to recieve the update
 		logrus.Info("Update Sent")

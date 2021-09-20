@@ -22,7 +22,7 @@ type Session struct {
 	profileDir    string // user data session dir. automatically created on chrome startup.
 }
 
-//NewSession a session to control the browser creation
+//NewSession a session to control the browser creation, creates a new browser if one is not running
 func NewSession() (*Session, error) {
 
 	dir, err := os.Getwd()
@@ -219,7 +219,7 @@ func (s *Session) Wait(ctx context.Context) {
 			logrus.Infof("Browser Context is done exiting")
 			return
 		case <-s.parentContext.Done():
-			logrus.Infof("Parent context is done existing")
+			logrus.Infof("Browser Parent context is done existing")
 			return
 		}
 	}

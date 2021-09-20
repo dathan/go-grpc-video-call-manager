@@ -22,7 +22,7 @@ func init() {
 // launch the grpc server that handles the open of the chrome launch and actions
 // launch a go routine that polls the calendar and schedules the next link
 func main() {
-
+	//trace.Start(os.Stderr)
 	ctx := context.Background()
 
 	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
@@ -47,5 +47,6 @@ func main() {
 
 	<-ctx.Done()
 	logrus.Println("SHUTDOWN")
+	//trace.Start(os.Stderr)
 	os.Exit(0)
 }

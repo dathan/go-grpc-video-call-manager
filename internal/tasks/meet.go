@@ -112,7 +112,7 @@ func UpdateCronMeetings(ctx context.Context, cron *tasks.Cron) {
 			}
 
 			// go through all the tasks and skip the meetings that have started
-			tsks = PruneTasks(tsks)
+			// tsks = PruneTasks(tsks)
 			cron.Update(tsks) // this will block and we want that if things are running so a dogpile of events do not happen
 			UpdateCronMeetings(ctx, cron)
 			return
