@@ -72,6 +72,12 @@ func (s *Session) NewContext() (context.Context, context.CancelFunc) {
 	return ctx, cancel
 }
 
+//AddTab return another tab to navigate to
+func (s *Session) AddTab() (context.Context, context.CancelFunc) {
+	return chromedp.NewContext(s.parentContext)
+}
+
+//Shutdown calls the parent context to cancel
 func (s *Session) Shutdown() {
 	logrus.Info("Session is shutting down")
 	s.parentCancel()
@@ -130,11 +136,11 @@ func (s *Session) Login(ctx context.Context) error {
 // Open navigates to the meeturn uri and waits for the body to load.
 // Then turns off the mic, turns off the camera and joins the meeting
 func (s *Session) Open(ctx context.Context, meetURI string) error {
-	return s.execute(ctx, "OPEN", s.openMeetUrl(meetURI))
+	return s.execute(ctx, "OPEN", s.navigateUrl(meetURI))
 }
 
-// openMeetUrl opens the actual url
-func (s *Session) openMeetUrl(meetURI string) chromedp.Tasks {
+// navigateUrl opens the actual url
+func (s *Session) navigateUrl(meetURI string) chromedp.Tasks {
 	return chromedp.Tasks{
 		chromedp.Navigate(meetURI),
 		chromedp.WaitVisible("body", chromedp.ByQuery),
@@ -185,6 +191,7 @@ func (s *Session) ApplySettings(ctx context.Context) error {
 func (s *Session) execute(ctx context.Context, actionType string, actions chromedp.Tasks) error {
 
 	actions = append(
+		//todo routine to return pre/post tasks for every execute
 		chromedp.Tasks{
 
 			chromedp.ActionFunc(

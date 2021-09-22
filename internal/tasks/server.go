@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/chromedp/chromedp"
 	"github.com/dathan/go-grpc-video-call-manager/pkg/manager"
 	"github.com/dathan/go-grpc-video-call-manager/pkg/session"
 	"github.com/sirupsen/logrus"
@@ -15,7 +16,7 @@ type server struct {
 	manager.UnimplementedOpenMeetUrlServer
 }
 
-// for the local server open the meet url
+//OpenMeetUrl for the local server open the meet url
 func (s server) OpenMeetUrl(c context.Context, man *manager.Meet) (*manager.Status, error) {
 
 	meet, err := session.NewSession()
@@ -31,6 +32,18 @@ func (s server) OpenMeetUrl(c context.Context, man *manager.Meet) (*manager.Stat
 
 	err = meet.Login(ctx)
 
+	if err != nil {
+		return &manager.Status{
+			Ok:       false,
+			ErrorMsg: err.Error(),
+		}, err
+	}
+
+	ctx1, cancel1 := chromedp.NewContext(ctx)
+	defer cancel1()
+
+	err = chromedp.Run(ctx1, chromedp.Navigate("https://calendar.google.com/calendar/u/0/r?pli=1"))
+	//err = meet.Open(ctx1, "https://calendar.google.com/calendar/u/0/r?pli=1")
 	if err != nil {
 		return &manager.Status{
 			Ok:       false,
@@ -55,6 +68,8 @@ func (s server) OpenMeetUrl(c context.Context, man *manager.Meet) (*manager.Stat
 		}, err
 	}
 
+	//Waiting means you need to wait for the browser process to exit
+	//TODO - wait for the tab to exit so you can avoid the browser context wait lock
 	meet.Wait(ctx)
 
 	ret := &manager.Status{
