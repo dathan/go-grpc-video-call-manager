@@ -61,7 +61,8 @@ func (c *Cron) Run() {
 	defer atomic.AddInt64(&c.jobCount, -1)
 
 	//when run finishes clean up the routine
-	ctxRun := context.Background()
+	ctxRun, cancel := context.WithCancel(c.parentContext)
+	defer cancel()
 	go c.listenForUpdates(ctxRun)
 
 	if len(c.ordered) == 0 {
@@ -133,7 +134,7 @@ func (c *Cron) listenForUpdates(cn context.Context) {
 
 	select {
 	case <-cn.Done():
-		logrus.Info("Calling context is done")
+		logrus.Warn("CALLING CONTEXT IS DONE")
 		return
 	case tsk := <-c.taskChan: // listen for an update to the calendar
 		logrus.Infof("Recieved Update to TaskChan - stoping timers, updating list, rerunning.")
@@ -149,7 +150,7 @@ func (c *Cron) listenForUpdates(cn context.Context) {
 // Wait for the timer to finish to launch the next item in the queue
 func (c *Cron) wait(t *time.Timer) {
 
-	logrus.Info("Waiting for a change")
+	logrus.Info("Waiting for TIMER")
 
 	defer func() {
 		logrus.Info("Wait finished, stoping the timer")

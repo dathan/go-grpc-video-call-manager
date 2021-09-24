@@ -30,3 +30,4 @@ cmd/launch_google_meet_chrome/credentials.json
 cmd/launch_google_meet_chrome/launch_google_meet_chrome
 cmd/launch_google_meet_chrome/token.json
 token.json
+*__debug_bin
