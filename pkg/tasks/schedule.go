@@ -35,6 +35,7 @@ type Cron struct {
 	lastTask      *Task
 	jobCount      int64
 	isRunning     bool
+	isListening   bool
 }
 
 // Create a new timed task
@@ -52,7 +53,7 @@ func (c *Cron) Run() {
 
 	var timer *time.Timer // each run will have its own timer to loop
 
-	logrus.Info("About to Run locking data")
+	logrus.Infof("%d] About to Run locking data", c.jobCount)
 
 	c.tLock.Lock()
 
@@ -60,10 +61,13 @@ func (c *Cron) Run() {
 	atomic.AddInt64(&c.jobCount, 1)
 	defer atomic.AddInt64(&c.jobCount, -1)
 
-	//when run finishes clean up the routine
-	ctxRun, cancel := context.WithCancel(c.parentContext)
-	defer cancel()
-	go c.listenForUpdates(ctxRun)
+	/*
+		//when run finishes clean up the routine
+		ctxRun, cancel := context.WithCancel(c.parentContext)
+		defer cancel()
+		//ctxRun := context.Background()
+		go c.listenForUpdates(ctxRun)
+	*/
 
 	if len(c.ordered) == 0 {
 		logrus.Warn("Tasks are finished")
@@ -75,7 +79,7 @@ func (c *Cron) Run() {
 	// c.ordered is order in time and we will either execute the task or schedule the task to run
 	for _, task := range c.ordered {
 
-		logrus.Infof("Looking at task: %+v", task)
+		logrus.Infof("%d] Looking at task: %+v", c.jobCount, task)
 
 		c.currentTask = nil
 		c.isRunning = false
@@ -119,7 +123,8 @@ func (c *Cron) Update(st SequentialTasks) {
 	// TODO: this is a race condition locking the subsystem. Do not do updates when connected to a meeting
 	if c.isRunning == false && !cmp.Equal(c.ordered, st) {
 		logrus.Info("Updating the channel to replace the task list")
-		c.taskChan <- st // note this will block if a select has not been established to recieve the update
+		go c.listenForUpdates(c.parentContext) // make sure there is always a listener
+		c.taskChan <- st                       // note this will block if a select has not been established to recieve the update. This means c.Run()'s spawned c.wait() has to be available for the update
 		logrus.Info("Update Sent")
 	}
 }
@@ -128,8 +133,21 @@ func (c *Cron) Update(st SequentialTasks) {
 func (c *Cron) listenForUpdates(cn context.Context) {
 
 	logrus.Info("listening for update")
+	c.tLock.Lock()
+	if c.isListening == true {
+		c.tLock.Unlock()
+		logrus.Info("A listener is already active")
+		return
+	}
+
+	c.tLock.Unlock()
+	c.isListening = true
+
 	defer func() {
 		logrus.Info("listening for update FINISHED!")
+		c.tLock.Lock()
+		c.isListening = false
+		c.tLock.Unlock()
 	}()
 
 	select {
