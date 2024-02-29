@@ -46,7 +46,7 @@ func (m *MeetTaskImpl) End() time.Time {
 // Run the current task from the cron package
 func (m *MeetTaskImpl) Execute() error {
 
-	if time.Now().Sub(m.Start()).Minutes() > 10.0 { // we start 10 minutes early if the meeting has started already skip
+	if time.Since(m.Start()).Minutes() > 10.0 { // we start 10 minutes early if the meeting has started already skip
 		logrus.Warnf("MEET TASK IS OLD NEED TO SKIP!! %s", m)
 		return errors.New("Task is too old to run..skipping")
 	}

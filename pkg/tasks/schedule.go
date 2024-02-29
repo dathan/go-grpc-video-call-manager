@@ -14,7 +14,7 @@ import (
 // TODO: turn into a pref
 const MAGIC_DELTA = float64(600) // seconds
 
-//Things that satisfy this interface can be executed as a Task
+// Things that satisfy this interface can be executed as a Task
 type Task interface {
 	Start() time.Time
 	Name() string
@@ -121,7 +121,7 @@ func (c *Cron) Update(st SequentialTasks) {
 
 	//logrus.Infof("Next Task: %s => Starts: %s", c.ordered[0].Name(), c.ordered[0].Start().Sub(time.Now()))
 	// TODO: this is a race condition locking the subsystem. Do not do updates when connected to a meeting
-	if c.isRunning == false && !cmp.Equal(c.ordered, st) {
+	if !c.isRunning && !cmp.Equal(c.ordered, st) {
 		logrus.Info("Updating the channel to replace the task list")
 		go c.listenForUpdates(c.parentContext) // make sure there is always a listener
 		c.taskChan <- st                       // note this will block if a select has not been established to recieve the update. This means c.Run()'s spawned c.wait() has to be available for the update
@@ -134,7 +134,7 @@ func (c *Cron) listenForUpdates(cn context.Context) {
 
 	logrus.Info("listening for update")
 	c.tLock.Lock()
-	if c.isListening == true {
+	if c.isListening {
 		c.tLock.Unlock()
 		logrus.Info("A listener is already active")
 		return
@@ -204,13 +204,14 @@ func (c *Cron) internalUpdate(st SequentialTasks) {
 
 func CloneValue(source interface{}, destin interface{}) {
 	x := reflect.ValueOf(source)
-	if x.Kind() == reflect.Ptr {
+	if x.Kind() == reflect.Ptr && !x.IsNil() {
 		starX := x.Elem()
 		y := reflect.New(starX.Type())
 		starY := y.Elem()
 		starY.Set(starX)
-		reflect.ValueOf(destin).Elem().Set(y.Elem())
-	} else {
-		destin = x.Interface()
+		reflect.ValueOf(destin).Elem().Set(starY)
 	}
+
+	//destin = x.Interface()
+
 }

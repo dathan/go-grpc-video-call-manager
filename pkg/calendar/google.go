@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path/filepath"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -44,7 +43,7 @@ type MeetItem struct {
 // Collection
 type MeetItems []MeetItem
 
-//GetUpcomingMeetings returns a list of meetings to join for the day
+// GetUpcomingMeetings returns a list of meetings to join for the day
 func (em *CalService) GetUpcomingMeetings() (MeetItems, error) {
 	meetings := MeetItems{}
 
@@ -191,6 +190,7 @@ func saveToken(path string, token *oauth2.Token) {
 	}
 }
 
+/*
 func path() (string, error) {
 	ex, err := os.Executable()
 	if err == nil {
@@ -198,3 +198,4 @@ func path() (string, error) {
 	}
 	return "", err
 }
+*/
