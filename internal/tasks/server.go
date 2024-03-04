@@ -16,7 +16,7 @@ type server struct {
 	manager.UnimplementedOpenMeetUrlServer
 }
 
-//OpenMeetUrl for the local server open the meet url
+// OpenMeetUrl for the local server open the meet url
 func (s server) OpenMeetUrl(c context.Context, man *manager.Meet) (*manager.Status, error) {
 
 	meet, err := session.NewSession()
@@ -81,7 +81,7 @@ func (s server) OpenMeetUrl(c context.Context, man *manager.Meet) (*manager.Stat
 
 // GRPCServer is launched via a go routine
 func GRPCServer(ctx context.Context) {
-	port := 8080
+	port := 8181
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		logrus.Errorf("could not listen to port %d: %v", port, err)

@@ -2,16 +2,19 @@ package main
 
 import (
 	"context"
+	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	meettask "github.com/dathan/go-grpc-video-call-manager/internal/tasks"
+	"github.com/dathan/go-grpc-video-call-manager/internal/utils"
 	"github.com/dathan/go-grpc-video-call-manager/pkg/tasks"
 	"github.com/sirupsen/logrus"
 )
 
-//setup logging
+// setup logging
 func init() {
 	l := &logrus.TextFormatter{ForceColors: true, FullTimestamp: true, TimestampFormat: "2006-01-02 15:04:05"}
 	logrus.SetFormatter(l)
@@ -28,16 +31,48 @@ func main() {
 	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
+	pwd, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("Failed to get current working directory: %v", err)
+	}
+
+	credentialsPaths := []string{
+		filepath.Join(pwd, "credentials.json"),                                           // current directory
+		filepath.Join(pwd, "..", "conf", "credentials.json"),                             // conf directory
+		filepath.Join(pwd, "conf", "credentials.json"),                                   // conf directory
+		filepath.Join(pwd, "..", "cmd", "launch_google_meet_chrome", "credentials.json"), // ../cmd/launch_google_meet_chrome directory
+	}
+
+	configPaths := []string{
+		filepath.Join(pwd, "config.json"),                                           // current directory
+		filepath.Join(pwd, "..", "conf", "config.json"),                             // conf directory
+		filepath.Join(pwd, "conf", "config.json"),                                   // conf directory
+		filepath.Join(pwd, "..", "cmd", "launch_google_meet_chrome", "config.json"), // ../cmd/launch_google_meet_chrome directory
+
+	}
+
+	config, err := utils.LoadConfig(configPaths)
+	if err != nil {
+		panic("ERROR!!! Cannot load config: " + err.Error())
+	}
+
+	d, err := utils.GetFileContents(credentialsPaths)
+	if err != nil {
+		panic("ERROR!! Cannot load credentials!! " + err.Error())
+	}
+
+	config.Credentials = d
+
 	// start the server
 	go meettask.GRPCServer(ctx)
 
 	// get tasks that implement the interface
-	t, err := meettask.GetTasks()
+	t, err := meettask.GetTasks(config)
 	if err != nil {
 		panic(err)
 	}
 	// Convert the tasks into a cron task
-	cron := tasks.NewCron(ctx, t)
+	cron := tasks.NewCron(ctx, t, config)
 
 	// refresh the task list
 	go meettask.UpdateCronMeetings(ctx, cron)

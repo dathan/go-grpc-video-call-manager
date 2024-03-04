@@ -1,14 +1,13 @@
 package utils
 
 import (
-	"io/ioutil"
 	"os"
 )
 
-func FindCredentialsFile(paths []string) ([]byte, error) {
+func GetFileContents(paths []string) ([]byte, error) {
 	for _, path := range paths {
 		// Attempt to read the file at the path
-		b, err := ioutil.ReadFile(path)
+		b, err := os.ReadFile(path)
 		if err == nil {
 			return b, nil // Return the contents and nil error if the file is found
 		}

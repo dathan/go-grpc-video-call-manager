@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/dathan/go-grpc-video-call-manager/internal/utils"
 	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
 )
@@ -36,15 +37,17 @@ type Cron struct {
 	jobCount      int64
 	isRunning     bool
 	isListening   bool
+	Config        *utils.Config
 }
 
 // Create a new timed task
-func NewCron(ctx context.Context, mis SequentialTasks) *Cron {
+func NewCron(ctx context.Context, mis SequentialTasks, config *utils.Config) *Cron {
 	return &Cron{
 		ordered:       mis,
 		parentContext: ctx,
 		taskChan:      make(chan SequentialTasks),
 		tLock:         &sync.Mutex{},
+		Config:        config,
 	}
 }
 
@@ -132,17 +135,21 @@ func (c *Cron) listenForUpdates(cn context.Context) {
 
 	logrus.Info("listening for update")
 	c.tLock.Lock()
-	defer c.tLock.Unlock()
+	//defer c.tLock.Unlock() // a deadlock gets created if you defer since the lock is not returned until the select returns
 	if c.isListening {
 		logrus.Info("A listener is already active")
+		c.tLock.Unlock()
 		return
 	}
 
 	c.isListening = true
+	c.tLock.Unlock()
 
 	defer func() {
 		logrus.Info("listening for update FINISHED!")
+		c.tLock.Lock()
 		c.isListening = false
+		c.tLock.Unlock()
 	}()
 
 	select {

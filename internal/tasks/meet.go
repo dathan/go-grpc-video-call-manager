@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/dathan/go-grpc-video-call-manager/internal/utils"
 	"github.com/dathan/go-grpc-video-call-manager/pkg/calendar"
 	"github.com/dathan/go-grpc-video-call-manager/pkg/manager"
 	"github.com/dathan/go-grpc-video-call-manager/pkg/tasks"
@@ -96,7 +97,7 @@ func UpdateCronMeetings(ctx context.Context, cron *tasks.Cron) {
 
 		case <-t.C:
 
-			tsks, err := GetTasks()
+			tsks, err := GetTasks(cron.Config)
 			if err != nil {
 				// When I close my laptop for the day, I want the client to recover
 				for { //TODO: 1140 minutes in a day, wait a day -- fix this
@@ -104,7 +105,7 @@ func UpdateCronMeetings(ctx context.Context, cron *tasks.Cron) {
 					// send a message to reset the channels (laptop is sleep)
 					cron.Update(tasks.SequentialTasks{})
 					time.Sleep(1 * time.Minute)
-					tsks, err = GetTasks()
+					tsks, err = GetTasks(cron.Config)
 					if err == nil {
 						break
 					}
@@ -135,9 +136,9 @@ func PruneTasks(tsks tasks.SequentialTasks) tasks.SequentialTasks {
 }
 
 // common code to getTasks
-func GetTasks() (tasks.SequentialTasks, error) {
+func GetTasks(c *utils.Config) (tasks.SequentialTasks, error) {
 
-	meetings, err := FindMeetings()
+	meetings, err := FindMeetings(c)
 	if err != nil {
 		return nil, err
 	}
@@ -147,9 +148,9 @@ func GetTasks() (tasks.SequentialTasks, error) {
 }
 
 // findMeetings is invoked via a go-routine which periodically polls the calender to update the meetings for the day.
-func FindMeetings() (calendar.MeetItems, error) {
+func FindMeetings(c *utils.Config) (calendar.MeetItems, error) {
 
-	cal := &calendar.CalService{} //
+	cal := calendar.NewCalService(c)
 	return cal.GetUpcomingMeetings()
 
 }

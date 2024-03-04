@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/dathan/go-grpc-video-call-manager/internal/utils"
@@ -24,6 +23,7 @@ var TOKEN *oauth2.Token
 // service to get the urls
 type CalService struct {
 	callersEmail string
+	config       *utils.Config
 }
 
 // implement a task
@@ -44,41 +44,30 @@ type MeetItem struct {
 // Collection
 type MeetItems []MeetItem
 
+func NewCalService(config *utils.Config) *CalService {
+
+	c := &CalService{}
+	c.callersEmail = config.Email // TODO: legacy until refactor
+	c.config = config
+	return c
+
+}
+
 // GetUpcomingMeetings returns a list of meetings to join for the day
 func (em *CalService) GetUpcomingMeetings() (MeetItems, error) {
 
-	pwd, err := os.Getwd()
-	if err != nil {
-		log.Fatalf("Failed to get current working directory: %v", err)
-	}
-
 	meetings := MeetItems{}
-
-	paths := []string{
-		filepath.Join(pwd, "credentials.json"),                                           // current directory
-		filepath.Join(pwd, "..", "conf", "credentials.json"),                             // conf directory
-		filepath.Join(pwd, "conf", "credentials.json"),                                   // conf directory
-		filepath.Join(pwd, "..", "cmd", "launch_google_meet_chrome", "credentials.json"), // ../cmd/launch_google_meet_chrome directory
-	}
-
-	// Try to find and read the credentials.json file
-	b, err := utils.FindCredentialsFile(paths)
-	if err != nil {
-		log.Fatalf("Failed to find credentials.json in the specified paths: %v", err)
-	}
+	credentials := em.config.Credentials
 
 	// If modifying these scopes, delete your previously saved token.json.
 	scopes := []string{calendar.CalendarScope, "email"}
-	config, err := google.ConfigFromJSON(b, scopes...)
+	config, err := google.ConfigFromJSON(credentials, scopes...)
 	if err != nil {
 		log.Errorf("Unable to parse client secret file to config: %v", err)
 		return nil, err
 	}
 
 	client := getClient(config)
-
-	em.callersEmail = "dpattishall@crusoeenergy.com"
-
 	srv, err := calendar.NewService(context.Background(), option.WithHTTPClient(client))
 	if err != nil {
 		log.Errorf("Unable to retrieve Calendar client: %v", err)
