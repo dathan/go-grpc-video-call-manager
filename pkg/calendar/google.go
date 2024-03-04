@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
+	"github.com/dathan/go-grpc-video-call-manager/internal/utils"
 	log "github.com/sirupsen/logrus"
 
 	"golang.org/x/oauth2"
@@ -45,13 +46,25 @@ type MeetItems []MeetItem
 
 // GetUpcomingMeetings returns a list of meetings to join for the day
 func (em *CalService) GetUpcomingMeetings() (MeetItems, error) {
+
+	pwd, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("Failed to get current working directory: %v", err)
+	}
+
 	meetings := MeetItems{}
 
-	pwd, _ := os.Getwd() //TODO
-	b, err := ioutil.ReadFile(pwd + "/cmd/launch_google_meet_chrome/credentials.json")
+	paths := []string{
+		filepath.Join(pwd, "credentials.json"),                                           // current directory
+		filepath.Join(pwd, "..", "conf", "credentials.json"),                             // conf directory
+		filepath.Join(pwd, "conf", "credentials.json"),                                   // conf directory
+		filepath.Join(pwd, "..", "cmd", "launch_google_meet_chrome", "credentials.json"), // ../cmd/launch_google_meet_chrome directory
+	}
+
+	// Try to find and read the credentials.json file
+	b, err := utils.FindCredentialsFile(paths)
 	if err != nil {
-		log.Errorf("Unable to read client secret file: %v", err)
-		return nil, err
+		log.Fatalf("Failed to find credentials.json in the specified paths: %v", err)
 	}
 
 	// If modifying these scopes, delete your previously saved token.json.
@@ -64,7 +77,7 @@ func (em *CalService) GetUpcomingMeetings() (MeetItems, error) {
 
 	client := getClient(config)
 
-	em.callersEmail = "dathan.pattishall@wework.com"
+	em.callersEmail = "dpattishall@crusoeenergy.com"
 
 	srv, err := calendar.NewService(context.Background(), option.WithHTTPClient(client))
 	if err != nil {
@@ -157,6 +170,8 @@ func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 	if _, err := fmt.Scan(&authCode); err != nil {
 		log.Errorf("Unable to read authorization code: %v", err)
 	}
+
+	fmt.Printf("What is the authCode: %s\n", authCode)
 
 	tok, err := config.Exchange(context.TODO(), authCode)
 	if err != nil {

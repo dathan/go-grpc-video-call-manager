@@ -56,6 +56,7 @@ func (c *Cron) Run() {
 	logrus.Infof("%d] About to Run locking data", c.jobCount)
 
 	c.tLock.Lock()
+	defer c.tLock.Unlock()
 
 	// this is really not needed but being complete
 	atomic.AddInt64(&c.jobCount, 1)
@@ -71,7 +72,6 @@ func (c *Cron) Run() {
 
 	if len(c.ordered) == 0 {
 		logrus.Warn("Tasks are finished")
-		c.tLock.Unlock()
 		return
 	}
 
@@ -106,11 +106,9 @@ func (c *Cron) Run() {
 
 	if timer == nil {
 		logrus.Warn("IMPOSSIBLE ERROR: Timer is nil sequential order is bogus. Run finished")
-		c.tLock.Unlock()
 		return
 	}
 
-	c.tLock.Unlock()
 	c.wait(timer)
 	logrus.Info("Run finished")
 
@@ -134,20 +132,17 @@ func (c *Cron) listenForUpdates(cn context.Context) {
 
 	logrus.Info("listening for update")
 	c.tLock.Lock()
+	defer c.tLock.Unlock()
 	if c.isListening {
-		c.tLock.Unlock()
 		logrus.Info("A listener is already active")
 		return
 	}
 
-	c.tLock.Unlock()
 	c.isListening = true
 
 	defer func() {
 		logrus.Info("listening for update FINISHED!")
-		c.tLock.Lock()
 		c.isListening = false
-		c.tLock.Unlock()
 	}()
 
 	select {
@@ -198,8 +193,9 @@ func (c *Cron) wait(t *time.Timer) {
 // abstract the lock when changing the SequentialTask
 func (c *Cron) internalUpdate(st SequentialTasks) {
 	c.tLock.Lock()
+	defer c.tLock.Unlock()
 	c.ordered = st
-	c.tLock.Unlock()
+	return
 }
 
 func CloneValue(source interface{}, destin interface{}) {
