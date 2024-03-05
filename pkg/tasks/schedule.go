@@ -56,14 +56,14 @@ func (c *Cron) Run() {
 
 	var timer *time.Timer // each run will have its own timer to loop
 
-	logrus.Infof("%d] About to Run locking data", c.jobCount)
-
-	c.tLock.Lock()
-	defer c.tLock.Unlock()
+	logrus.Infof("%d] About to Run locking data", c.jobCount) // if c.jobCount != 0 we have something scheduled.
 
 	// this is really not needed but being complete
 	atomic.AddInt64(&c.jobCount, 1)
 	defer atomic.AddInt64(&c.jobCount, -1)
+
+	c.tLock.Lock()
+	//defer c.tLock.Unlock()
 
 	/*
 		//when run finishes clean up the routine
@@ -75,6 +75,7 @@ func (c *Cron) Run() {
 
 	if len(c.ordered) == 0 {
 		logrus.Warn("Tasks are finished")
+		c.tLock.Unlock()
 		return
 	}
 
@@ -109,9 +110,11 @@ func (c *Cron) Run() {
 
 	if timer == nil {
 		logrus.Warn("IMPOSSIBLE ERROR: Timer is nil sequential order is bogus. Run finished")
+		c.tLock.Unlock()
 		return
 	}
 
+	c.tLock.Unlock()
 	c.wait(timer)
 	logrus.Info("Run finished")
 
@@ -171,7 +174,7 @@ func (c *Cron) listenForUpdates(cn context.Context) {
 func (c *Cron) wait(t *time.Timer) {
 
 	logrus.Info("Waiting for TIMER")
-
+	// there is some sort of lock here
 	defer func() {
 		logrus.Info("Wait finished, stoping the timer")
 		if !t.Stop() {
