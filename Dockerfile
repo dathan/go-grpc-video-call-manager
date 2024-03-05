@@ -1,6 +1,6 @@
 # this is a multi-stage build
 # the 1st FROM builds the application
-FROM golang:1.16.3-alpine3.13 AS baseGo
+FROM golang:1.22.1-alpine3.18 AS baseGo
   LABEL stage=build
 
   ENV CGO_ENABLED 0
@@ -26,7 +26,7 @@ FROM alpine:latest as alpineCerts
 # the 2nd FROM says copy the binary from baseGo and put it here using scratch as its base
 # - note using alpine because need to run a shell command wrapper
 #FROM scratch AS release
-FROM alpine:3.11.3 AS release
+FROM alpine:3.18 AS release
   LABEL stage=release
 
   # Pull CA Certificates to allow for TLS validation a CA
