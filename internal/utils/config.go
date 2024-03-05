@@ -5,6 +5,8 @@ import "encoding/json"
 type Config struct {
 	Email       string `json:"email"`
 	Credentials []byte `json:"credentials"`
+	Backend     string `json:"backend"`
+	Port        int    `json:"port"`
 }
 
 func LoadConfig(paths []string) (*Config, error) {

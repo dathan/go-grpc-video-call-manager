@@ -20,7 +20,7 @@ type Task interface {
 	Start() time.Time
 	Name() string
 	End() time.Time
-	Execute() error //A Task has to be able to be run
+	Execute(*utils.Config) error //A Task has to be able to be run
 }
 
 // Tasks that are sequentially executed
@@ -91,7 +91,7 @@ func (c *Cron) Run() {
 
 			c.currentTask = &task
 			c.isRunning = true
-			if err := task.Execute(); err != nil {
+			if err := task.Execute(c.Config); err != nil {
 				logrus.Warnf("Task: %s - ERROR - %s\n", task, err)
 			}
 

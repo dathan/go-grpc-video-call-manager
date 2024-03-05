@@ -45,7 +45,7 @@ func (m *MeetTaskImpl) End() time.Time {
 }
 
 // Run the current task from the cron package
-func (m *MeetTaskImpl) Execute() error {
+func (m *MeetTaskImpl) Execute(config *utils.Config) error {
 
 	if time.Since(m.Start()).Minutes() > 10.0 { // we start 10 minutes early if the meeting has started already skip
 		logrus.Warnf("MEET TASK IS OLD NEED TO SKIP!! %s", m)
@@ -53,7 +53,7 @@ func (m *MeetTaskImpl) Execute() error {
 	}
 
 	logrus.Infof("Execute !!!: %s => %s\n", m.Summary, m.Uri)
-	backend := "localhost:8080"
+	backend := config.Backend
 
 	conn, err := grpc.Dial(backend, grpc.WithInsecure())
 	if err != nil {

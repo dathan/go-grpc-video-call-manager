@@ -62,9 +62,13 @@ func main() {
 	}
 
 	config.Credentials = d
+	serverReady := make(chan struct{})
 
 	// start the server
-	go meettask.GRPCServer(ctx)
+	go meettask.GRPCServer(ctx, config, serverReady)
+
+	// Block until the server is ready - this fixes a case when getTasks sees it needs to launch a server yet the GRPC server is not up
+	<-serverReady
 
 	// get tasks that implement the interface
 	t, err := meettask.GetTasks(config)

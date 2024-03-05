@@ -1,3 +1,5 @@
 {
-	"email" : "dpattishall@crusoeenergy.com"
+	"email" : "dpattishall@crusoeenergy.com",
+	"backend" : "localhost:8181",
+	"port"	: 8181
 }

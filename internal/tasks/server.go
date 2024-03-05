@@ -6,6 +6,7 @@ import (
 	"net"
 
 	"github.com/chromedp/chromedp"
+	"github.com/dathan/go-grpc-video-call-manager/internal/utils"
 	"github.com/dathan/go-grpc-video-call-manager/pkg/manager"
 	"github.com/dathan/go-grpc-video-call-manager/pkg/session"
 	"github.com/sirupsen/logrus"
@@ -80,21 +81,28 @@ func (s server) OpenMeetUrl(c context.Context, man *manager.Meet) (*manager.Stat
 }
 
 // GRPCServer is launched via a go routine
-func GRPCServer(ctx context.Context) {
-	port := 8181
+func GRPCServer(ctx context.Context, config *utils.Config, serverReady chan<- struct{}) {
+	port := config.Port
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		logrus.Errorf("could not listen to port %d: %v", port, err)
+		panic(err)
 	}
 
 	logrus.Infof("GRPCServer starting localhost:%d\n", port)
 
 	s := grpc.NewServer()
 	manager.RegisterOpenMeetUrlServer(s, server{})
-	err = s.Serve(lis)
-	if err != nil {
-		logrus.Errorf("could not serve: %v", err)
-	}
+
+	go func(s *grpc.Server, lis net.Listener) {
+		err := s.Serve(lis)
+		if err != nil {
+			logrus.Errorf("could not serve: %v", err)
+		}
+	}(s, lis)
+
+	// Signal that the server is ready
+	serverReady <- struct{}{}
 
 	<-ctx.Done()
 	logrus.Infoln("GRPC-Server is shutting down")
