@@ -54,8 +54,6 @@ func NewCron(ctx context.Context, mis SequentialTasks, config *utils.Config) *Cr
 // Run the Crontask or schedule to run it later.
 func (c *Cron) Run() {
 
-	var timer *time.Timer // each run will have its own timer to loop
-
 	logrus.Infof("%d] About to Run locking data", c.jobCount) // if c.jobCount != 0 we have something scheduled.
 
 	// this is really not needed but being complete
@@ -81,6 +79,7 @@ func (c *Cron) Run() {
 
 	// from a golang concurrency perspective range produces a write to assign it to task.
 	// c.ordered is order in time and we will either execute the task or schedule the task to run
+	var d time.Duration
 	for _, task := range c.ordered {
 
 		logrus.Infof("%d] Looking at task: %+v", c.jobCount, task)
@@ -102,22 +101,44 @@ func (c *Cron) Run() {
 		c.lastTask = &task
 
 		//TODO: make preference of scheduling the task buffer
-		d := task.Start().Sub(s)
+		d = task.Start().Sub(s)
 		logrus.Infof("NEW SCHEDULED START[ %s => %+v ] - Timer Execution: %f seconds -> %s", task.Name(), task.Start(), d.Seconds(), time.Now().Add(d))
-		timer = time.NewTimer(d)
 		break
 	}
 
-	if timer == nil {
-		logrus.Warn("IMPOSSIBLE ERROR: Timer is nil sequential order is bogus. Run finished")
-		c.tLock.Unlock()
-		return
-	}
-
 	c.tLock.Unlock()
-	c.wait(timer)
+	c.wait(d)
 	logrus.Info("Run finished")
 
+}
+
+func (c *Cron) handleLaptopSleepTimer(timerDuration time.Duration) {
+
+	// Calculate the target time from now
+	targetTime := time.Now().Add(timerDuration)
+
+	// Use a ticker to periodically check the time
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+
+	logrus.Infof("We will return at: %s\n", targetTime)
+
+	for {
+		select {
+		case currentTime := <-ticker.C:
+			if currentTime.After(targetTime) || currentTime.Equal(targetTime) {
+				logrus.Infof("Ticker triggered at: %s\n", currentTime)
+				go c.Run()
+				return
+			}
+		case <-c.taskChan: // listen for an update to the calendar
+			logrus.Infof("Timer task chan detected update")
+			return
+		case <-c.parentContext.Done(): // listen for an exit
+			logrus.Info("Parent is done")
+			return
+		}
+	}
 }
 
 // Update the tasks channel so listeners can execute the new job order
@@ -170,8 +191,12 @@ func (c *Cron) listenForUpdates(cn context.Context) {
 	}
 }
 
+func (c *Cron) wait(d time.Duration) {
+	c.handleLaptopSleepTimer(d)
+}
+
 // Wait for the timer to finish to launch the next item in the queue
-func (c *Cron) wait(t *time.Timer) {
+func (c *Cron) waitOrig(t *time.Timer) {
 
 	logrus.Info("Waiting for TIMER")
 	// there is some sort of lock here
